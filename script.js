@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function checkServicesEmpty() {
-    const msg = document.getElementById('noServicesMsg');a
+    const msg = document.getElementById('noServicesMsg');
     if (!msg) return;
     
     if (services.length === 0) {
