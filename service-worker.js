@@ -1,43 +1,25 @@
-const CACHE_NAME = 'stack-manager-v1';
-const urlsToCache = ['/', '/index.html', '/style.css', '/script.js'];
+// service-worker.js - نسخة نظيفة (بدون كاش)
+const CACHE_NAME = 'stack-manager-v2';
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
-    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    // امسح كل الكاش القديم
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => caches.delete(cacheName))
+            );
+        }).then(() => self.clients.claim())
+    );
 });
 
-// ✅ الحل: Network First - جرب السيرفر الأول، لو فشل رجع للكاش
+// ❌ NO CACHE - كل حاجة من السيرفر مباشرة
 self.addEventListener('fetch', (event) => {
-    // استبعد طلبات API أو ملفات خارجية
-    if (event.request.url.includes('google') || 
-        event.request.url.includes('cdnjs') || 
-        event.request.url.includes('fonts')) {
-        return;
-    }
-
-    event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
-                // لو السيرفر رد، حدث الكاش
-                if (networkResponse && networkResponse.status === 200) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
-                }
-                return networkResponse;
-            })
-            .catch(() => {
-                // لو السيرفر مش متاح، رجع من الكاش
-                return caches.match(event.request);
-            })
-    );
+    // سيب كل حاجة تمشي عادي من السيرفر
+    return;
 });
 
 // Push Notifications
@@ -73,7 +55,6 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// Handle notification click
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     if (event.action === 'dismiss') return;

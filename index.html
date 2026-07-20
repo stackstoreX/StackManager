@@ -6,12 +6,13 @@
     <title>نظام إدارة الاشتراكات - Stack Store Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.1.0">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6366f1">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script>window.APP_VERSION = '2.1.0';</script>
 </head>
 <body>
     <div class="bg-animation"></div>
@@ -552,8 +553,22 @@
             </button>
         </div>
     </div>
+    
+    <script src="script.js?v=2.1.0"></script>
+    <script src="sync-manager.js?v=2.1.0"></script>
 
-    <script src="sync-manager.js"></script>
-    <script src="script.js"></script>
+    <script>
+    // ✅ تأكد إن البيانات محملة قبل ما الصفحة تظهر
+    document.addEventListener('DOMContentLoaded', function() {
+        // حمل البيانات من localStorage
+        if (typeof loadData === 'function') loadData();
+        
+        // حدث العدادات
+        if (typeof renderAll === 'function') renderAll();
+        
+        console.log('✅ الصفحة جاهزة - العملاء:', 
+            JSON.parse(localStorage.getItem('sub_customers') || '[]').length);
+    });
+</script>
 </body>
 </html>

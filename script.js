@@ -1,7 +1,28 @@
 // ===================== DATA STORE =====================
-let customers = JSON.parse(localStorage.getItem('sub_customers')) || [];
-let services = JSON.parse(localStorage.getItem('sub_services')) || [];
-let expenses = JSON.parse(localStorage.getItem('sub_expenses')) || [];
+// ✅ دالة مساعدة لتحميل البيانات بأمان
+function loadData() {
+    try {
+        const c = localStorage.getItem('sub_customers');
+        const s = localStorage.getItem('sub_services');
+        const e = localStorage.getItem('sub_expenses');
+        
+        customers = c ? JSON.parse(c) : [];
+        services = s ? JSON.parse(s) : [];
+        expenses = e ? JSON.parse(e) : [];
+    } catch (err) {
+        console.error('❌ خطأ في تحميل البيانات:', err);
+        customers = [];
+        services = [];
+        expenses = [];
+    }
+}
+
+// حمل البيانات فوراً
+let customers = [];
+let services = [];
+let expenses = [];
+loadData(); // ← حمل هنا فوراً
+
 let soundEnabled = localStorage.getItem('sub_sound') !== 'false';
 let currentStartDate = new Date();
 let currentEndDate = new Date();
@@ -579,20 +600,30 @@ function addService(e) {
     
     services.push(service);
     saveData();
-    updateServicesSelect();
-    checkServicesEmpty();
-    renderServices();
+    
+    // ✅ حدث كل حاجة فوراً
+    updateServicesSelect();   // حدث dropdown في نموذج العميل
+    checkServicesEmpty();      // شيك لو مفيش خدمات
+    renderServices();          // حدث صفحة الخدمات
+    renderAll();               // حدث كل الصفحات
+    
     closeServiceModal();
     showNotification('✅ تم إضافة الخدمة بنجاح!', 'success');
+    playSound('success');
 }
 
 function deleteService(id) {
     if (confirm('هل أنت متأكد من حذف هذه الخدمة؟')) {
         services = services.filter(s => s.id !== id);
         saveData();
+        
+        // ✅ حدث فوراً
         updateServicesSelect();
         checkServicesEmpty();
         renderServices();
+        renderAll();  // حدث كل حاجة
+        
+        showNotification('🗑️ تم حذف الخدمة', 'success');
     }
 }
 
@@ -627,7 +658,10 @@ function renderAll() {
     renderCustomers();
     renderServices();
     renderExpiring();
+    renderFinance();      // ← أضف دي لو مش موجودة
     updateBadges();
+    updateServicesSelect(); // ← حدث dropdown
+    checkServicesEmpty();   // ← شيك رسالة "مفيش خدمات"
 }
 
 function renderDashboard() {
@@ -1052,10 +1086,15 @@ function filterCustomers() {
 
 // ===================== SAVE =====================
 function saveData() {
-    localStorage.setItem('sub_customers', JSON.stringify(customers));
-    localStorage.setItem('sub_services', JSON.stringify(services));
-    localStorage.setItem('sub_expenses', JSON.stringify(expenses));
-    renderAll();
+    try {
+        localStorage.setItem('sub_customers', JSON.stringify(customers));
+        localStorage.setItem('sub_services', JSON.stringify(services));
+        localStorage.setItem('sub_expenses', JSON.stringify(expenses));
+        console.log('💾 تم الحفظ:', { customers: customers.length, services: services.length, expenses: expenses.length });
+    } catch (err) {
+        console.error('❌ خطأ في الحفظ:', err);
+        showNotification('⚠️ خطأ في حفظ البيانات', 'warning');
+    }
 }
 
 // ===================== SETTINGS =====================
