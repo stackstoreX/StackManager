@@ -6,21 +6,18 @@ function loadData() {
         const s = localStorage.getItem('sub_services');
         const e = localStorage.getItem('sub_expenses');
         
-        customers = c ? JSON.parse(c) : [];
-        services = s ? JSON.parse(s) : [];
-        expenses = e ? JSON.parse(e) : [];
+        window.customers = c ? JSON.parse(c) : [];
+        window.services = s ? JSON.parse(s) : [];
+        window.expenses = e ? JSON.parse(e) : [];
     } catch (err) {
         console.error('❌ خطأ في تحميل البيانات:', err);
-        customers = [];
-        services = [];
-        expenses = [];
+        window.customers = [];
+        window.services = [];
+        window.expenses = [];
     }
 }
 
 // حمل البيانات فوراً
-let customers = [];
-let services = [];
-let expenses = [];
 loadData(); // ← حمل هنا فوراً
 
 let soundEnabled = localStorage.getItem('sub_sound') !== 'false';
@@ -278,21 +275,42 @@ function scheduleDailyCheck() {
 
 // ===================== NAVIGATION =====================
 function showSection(sectionId) {
+    // ✅ أقفل الموبايل مينو
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+    
+    // ✅ أخفي كل الأقسام
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
-    document.getElementById(sectionId + '-section').classList.add('active');
+    // ✅ أظهر القسم المطلوب
+    const targetSection = document.getElementById(sectionId + '-section');
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
     
+    // ✅ فعل الـ nav-item المناسب
     document.querySelectorAll('.nav-item').forEach(item => {
-        if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(sectionId)) {
+        const onclick = item.getAttribute('onclick');
+        if (onclick && onclick.includes("'" + sectionId + "'")) {
             item.classList.add('active');
         }
     });
     
+    // ✅ حدث البيانات حسب القسم
+    if (sectionId === 'dashboard') renderDashboard();
     if (sectionId === 'customers') renderCustomers();
-    if (sectionId === 'services') renderServices();
+    if (sectionId === 'services') {
+        console.log('🔄 تحديث قسم الخدمات...');
+        renderServices(); // ← حدث فوراً
+    }
     if (sectionId === 'expiring') renderExpiring();
     if (sectionId === 'finance') renderFinance();
+    
+    // ✅ حدث العدادات
+    updateBadges();
 }
 
 function toggleMobileMenu() {
@@ -584,32 +602,50 @@ function closeServiceModal() {
 
 function addService(e) {
     e.preventDefault();
+    
     const name = document.getElementById('serviceName').value.trim();
     const price = parseFloat(document.getElementById('servicePrice').value);
     const icon = document.getElementById('serviceIcon').value;
     
-    if (!name || !price) return;
+    if (!name || !price) {
+        showNotification('⚠️ أدخل اسم الخدمة والسعر', 'warning');
+        return;
+    }
     
     const service = {
         id: Date.now(),
-        name,
-        price,
-        icon,
+        name: name,
+        price: price,
+        icon: icon,
         customers: 0
     };
     
+    // ✅ أضف للمصفوفة
     services.push(service);
+    
+    // ✅ احفظ في localStorage
     saveData();
     
-    // ✅ حدث كل حاجة فوراً
-    updateServicesSelect();   // حدث dropdown في نموذج العميل
-    checkServicesEmpty();      // شيك لو مفيش خدمات
-    renderServices();          // حدث صفحة الخدمات
-    renderAll();               // حدث كل الصفحات
+    // ✅ حدث dropdown في نموذج العميل
+    updateServicesSelect();
     
+    // ✅ شيك لو مفيش خدمات (نخفي الرسالة)
+    checkServicesEmpty();
+    
+    // ✅ حدث صفحة الخدمات فوراً
+    renderServices();
+    
+    // ✅ حدث كل الصفحات التانية
+    renderAll();
+    
+    // ✅ أقفل المودال
     closeServiceModal();
-    showNotification('✅ تم إضافة الخدمة بنجاح!', 'success');
+    
+    // ✅ إشعار نجاح
+    showNotification('✅ تم إضافة الخدمة ' + name + ' بنجاح!', 'success');
     playSound('success');
+    
+    console.log('✅ خدمة جديدة:', service, 'الإجمالي:', services.length);
 }
 
 function deleteService(id) {
@@ -617,13 +653,21 @@ function deleteService(id) {
         services = services.filter(s => s.id !== id);
         saveData();
         
-        // ✅ حدث فوراً
+        // ✅ حدث dropdown في نموذج العميل
         updateServicesSelect();
+        
+        // ✅ شيك لو مفيش خدمات
         checkServicesEmpty();
+        
+        // ✅ حدث صفحة الخدمات فوراً
         renderServices();
-        renderAll();  // حدث كل حاجة
+        
+        // ✅ حدث كل الصفحات
+        renderAll();
         
         showNotification('🗑️ تم حذف الخدمة', 'success');
+        
+        console.log('🗑️ خدمة محذوفة. المتبقي:', services.length);
     }
 }
 
@@ -831,6 +875,17 @@ function renderCustomers() {
 function renderServices() {
     const grid = document.getElementById('servicesGrid');
     
+    if (!grid) {
+        console.error('❌ servicesGrid مش موجود في DOM!');
+        return;
+    }
+    
+    // ✅ تأكد إن services مصفوفة
+    if (!Array.isArray(services)) {
+        console.error('❌ services مش مصفوفة!', services);
+        services = [];
+    }
+    
     if (services.length === 0) {
         grid.innerHTML = `
             <div class="empty-state" style="grid-column: 1 / -1;">
@@ -844,15 +899,19 @@ function renderServices() {
         return;
     }
     
+    // ✅ حدث عدد العملاء لكل خدمة
     services.forEach(s => {
         s.customers = customers.filter(c => c.serviceId === s.id).length;
     });
     
-    grid.innerHTML = services.map(s => `
-        <div class="service-card">
+    // ✅ بني HTML
+    const html = services.map(s => `
+        <div class="service-card" data-service-id="${s.id}">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div class="service-icon">${s.icon}</div>
-                <button class="action-btn delete" onclick="deleteService(${s.id})" title="حذف الخدمة"><i class="fas fa-trash"></i></button>
+                <button class="action-btn delete" onclick="deleteService(${s.id})" title="حذف الخدمة">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
             <div class="service-name">${s.name}</div>
             <div class="service-price">${s.price} ج.م</div>
@@ -868,6 +927,10 @@ function renderServices() {
             </div>
         </div>
     `).join('');
+    
+    grid.innerHTML = html;
+    
+    console.log('✅ renderServices:', services.length, 'خدمة');
 }
 
 function renderExpiring() {
@@ -1090,7 +1153,12 @@ function saveData() {
         localStorage.setItem('sub_customers', JSON.stringify(customers));
         localStorage.setItem('sub_services', JSON.stringify(services));
         localStorage.setItem('sub_expenses', JSON.stringify(expenses));
-        console.log('💾 تم الحفظ:', { customers: customers.length, services: services.length, expenses: expenses.length });
+        
+        console.log('💾 تم الحفظ:', {
+            customers: customers.length,
+            services: services.length,
+            expenses: expenses.length
+        });
     } catch (err) {
         console.error('❌ خطأ في الحفظ:', err);
         showNotification('⚠️ خطأ في حفظ البيانات', 'warning');

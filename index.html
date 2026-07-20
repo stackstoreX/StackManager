@@ -558,17 +558,32 @@
     <script src="sync-manager.js?v=2.1.0"></script>
 
     <script>
-    // ✅ تأكد إن البيانات محملة قبل ما الصفحة تظهر
-    document.addEventListener('DOMContentLoaded', function() {
-        // حمل البيانات من localStorage
-        if (typeof loadData === 'function') loadData();
-        
-        // حدث العدادات
-        if (typeof renderAll === 'function') renderAll();
-        
-        console.log('✅ الصفحة جاهزة - العملاء:', 
-            JSON.parse(localStorage.getItem('sub_customers') || '[]').length);
-    });
-</script>
+        // ✅ تأكد إن البيانات محملة قبل ما الصفحة تظهر
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM جاهز!');
+            
+            // حمل البيانات
+            if (typeof loadData === 'function') {
+                loadData();
+                console.log('📊 البيانات:', {
+                    customers: customers.length,
+                    services: services.length,
+                    expenses: expenses.length
+                });
+            }
+            
+            // حدث كل حاجة
+            if (typeof renderAll === 'function') {
+                renderAll();
+                console.log('🎨 UI محدث');
+            }
+            
+            // حدث الخدمات تحديداً
+            if (typeof renderServices === 'function') {
+                renderServices();
+                console.log('📦 الخدمات:', services.length);
+            }
+        });
+    </script>
 </body>
 </html>
