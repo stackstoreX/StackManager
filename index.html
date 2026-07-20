@@ -22,7 +22,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>    
     <!-- Notification Panel -->
     <div class="notification-panel" id="notificationPanel"></div>
-
+    
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo">
@@ -446,12 +446,12 @@
          <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="تشغيل/إيقاف الصوت">
         <i class="fas fa-volume-up" id="soundIcon"></i>
     </button>
-
+    
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">⚙️ إعدادات الإشعارات</h3>
+                <h3 class="modal-title">⚙️ الإعدادات</h3>
                 <button class="modal-close" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="saveSettings(event)">
@@ -465,13 +465,10 @@
                         <i class="fas fa-bell"></i> إشعارات المتصفح
                     </label>
                     <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">
-                        هتجيلك إشعارات في شريط الإشعارات لما يجي معاد تجديد الاشتراكات
+                        هتجيلك إشعارات لما يجي معاد تجديد الاشتراكات
                     </p>
-                    <button type="button" class="btn btn-primary" onclick="requestPushPermission()" style="width: 100%; margin-bottom: 8px;">
+                    <button type="button" class="btn btn-primary" onclick="requestPushPermission()" style="width: 100%;">
                         <i class="fas fa-bell"></i> تفعيل الإشعارات
-                    </button>
-                    <button type="button" class="btn btn-warning" onclick="testPushNotificationNow()" style="width: 100%;">
-                        <i class="fas fa-paper-plane"></i> 🧪 جرب الإشعار دلوقتي
                     </button>
                 </div>
                 
@@ -480,6 +477,19 @@
                         <input type="checkbox" id="autoNotify" checked style="width: 18px; height: 18px;">
                         <span>تفعيل الإشعارات التلقائية</span>
                     </label>
+                </div>
+                
+                <!-- ✅ ربط الأجهزة - جديد -->
+                <div class="form-group" style="border: 1px solid var(--primary); border-radius: 12px; padding: 15px; margin-top: 15px;">
+                    <label class="form-label" style="color: var(--primary);">
+                        <i class="fas fa-sync-alt"></i> ربط الأجهزة
+                    </label>
+                    <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">
+                        انقل بياناتك بين الأجهزة بسهولة
+                    </p>
+                    <button type="button" class="btn btn-primary" onclick="openSyncModal(); closeSettingsModal();" style="width: 100%;">
+                        <i class="fas fa-sync-alt"></i> فتح ربط الأجهزة
+                    </button>
                 </div>
                 
                 <div style="margin-top: 20px; display: flex; gap: 12px;">
@@ -499,11 +509,6 @@
     <button class="push-toggle muted" id="pushToggle" onclick="togglePushNotifications()" title="تفعيل الإشعارات">
         <i class="fas fa-bell-slash" id="pushIcon"></i>
     </button>
-
-            <div class="nav-item" onclick="openSyncModal()">
-            <i class="fas fa-sync-alt" style="color: var(--primary);"></i>
-            <span>ربط الأجهزة</span>
-        </div>
         
         <!-- Sync Modal - ربط الأجهزة -->
     <div class="modal-overlay" id="syncModal">
