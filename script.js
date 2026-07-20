@@ -1055,6 +1055,7 @@ function saveData() {
     localStorage.setItem('sub_customers', JSON.stringify(customers));
     localStorage.setItem('sub_services', JSON.stringify(services));
     localStorage.setItem('sub_expenses', JSON.stringify(expenses));
+    renderAll();
 }
 
 // ===================== SETTINGS =====================
