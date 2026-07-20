@@ -308,7 +308,6 @@ function renderCalendar(type, date) {
     const grid = document.getElementById(type + 'CalendarGrid');
     grid.innerHTML = '';
     
-    // ✅ عرض أيام الأسبوع
     const dayHeaders = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
     dayHeaders.forEach(d => {
         const el = document.createElement('div');
@@ -317,15 +316,13 @@ function renderCalendar(type, date) {
         grid.appendChild(el);
     });
     
-    // ✅ أيام الشهر السابق (فاضية)
-    for (let i = 0; i < firstDay; i++) {
+    for (let i = firstDay - 1; i >= 0; i--) {
         const el = document.createElement('div');
         el.className = 'calendar-day other-month';
-        el.textContent = daysInPrevMonth - firstDay + i + 1;
+        el.textContent = daysInPrevMonth - i;
         grid.appendChild(el);
     }
     
-    // ✅ أيام الشهر الحالي
     const today = new Date();
     for (let i = 1; i <= daysInMonth; i++) {
         const el = document.createElement('div');
@@ -347,9 +344,7 @@ function renderCalendar(type, date) {
         grid.appendChild(el);
     }
     
-    // ✅ أيام الشهر الجاي (فاضية)
-    const totalCells = firstDay + daysInMonth;
-    const remaining = (7 - (totalCells % 7)) % 7;
+    const remaining = (7 - ((firstDay + daysInMonth) % 7)) % 7;
     for (let i = 1; i <= remaining; i++) {
         const el = document.createElement('div');
         el.className = 'calendar-day other-month';
@@ -1138,10 +1133,10 @@ function renderExpenseCalendar(date) {
         grid.appendChild(el);
     });
     
-    for (let i = 0; i < firstDay; i++) {
+    for (let i = firstDay - 1; i >= 0; i--) {
         const el = document.createElement('div');
         el.className = 'calendar-day other-month';
-        el.textContent = daysInPrevMonth - firstDay + i + 1;
+        el.textContent = daysInPrevMonth - i;
         grid.appendChild(el);
     }
     

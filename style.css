@@ -1409,19 +1409,3 @@ body {
         font-size: 18px;
     }
 }
-
-/* Sync Modal Styles */
-#syncModal .form-label {
-    font-weight: 700;
-    font-size: 14px;
-}
-
-#exportCode {
-    background: rgba(16, 185, 129, 0.05);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-#importCode {
-    background: rgba(245, 158, 11, 0.05);
-    border-color: rgba(245, 158, 11, 0.3);
-}
