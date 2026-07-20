@@ -373,20 +373,19 @@
                         <option value="🎨">🎨 تصميم</option>
                         <option value="🎬">🎬 مونتاج</option>
                         <option value="🛠️">🛠️ أدوات</option>
+                        <option value="📺">📺 ترفيه</option>
+                        <option value="🎵">🎵 موسيقى</option>
+                        <option value="☁️">☁️ سحابي</option>
                     </select>
                 </div>
-                             <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save"></i> حفظ الإعدادات
-                    <button type="button" class="btn btn-primary" onclick="testNotificationNow()" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark));">
-                        <i class="fas fa-paper-plane"></i> جرب الإرسال
-                    </button>
-                    <button type="button" class="btn btn-outline" onclick="closeSettingsModal()">إلغاء</button>
+                <div style="margin-top: 20px; display: flex; gap: 12px;">
+                    <button type="submit" class="btn btn-success">إضافة الخدمة</button>
+                    <button type="button" class="btn btn-outline" onclick="closeServiceModal()">إلغاء</button>
                 </div>
             </form>
         </div>
     </div>
-
+    
     <!-- Expense Modal -->
     <div class="modal-overlay" id="expenseModal">
         <div class="modal">
@@ -497,6 +496,61 @@
         <i class="fas fa-bell-slash" id="pushIcon"></i>
     </button>
 
+            <div class="nav-item" onclick="openSyncModal()">
+            <i class="fas fa-sync-alt" style="color: var(--primary);"></i>
+            <span>ربط الأجهزة</span>
+        </div>
+        
+        <!-- Sync Modal - ربط الأجهزة -->
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">🔄 ربط الأجهزة</h3>
+                <button class="modal-close" onclick="closeSyncModal()"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <!-- كود الجهاز الحالي -->
+            <div style="background: rgba(99,102,241,0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; margin-bottom: 20px; text-align: center;">
+                <div style="color: var(--gray); font-size: 12px; margin-bottom: 5px;">كود الجهاز الحالي</div>
+                <div id="currentDeviceCode" style="font-size: 22px; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 2px;">---</div>
+            </div>
+            
+            <!-- تصدير -->
+            <div class="form-group">
+                <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-upload" style="color: var(--success);"></i> نسخ البيانات لهذا الجهاز
+                </label>
+                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اضغط عشان تنسخ كود بنقل كل البيانات</p>
+                <button type="button" class="btn btn-success" onclick="exportData()" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-copy"></i> نسخ كود النقل
+                </button>
+                <input type="text" class="form-input" id="exportCode" readonly style="text-align: center; font-family: monospace; font-size: 11px;" placeholder="الكود هيظهر هنا">
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
+            
+            <!-- استيراد -->
+            <div class="form-group">
+                <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-download" style="color: var(--warning);"></i> استيراد البيانات من جهاز آخر
+                </label>
+                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">الصق الكود اللي نسخته من الجهاز التاني</p>
+                <textarea class="form-input" id="importCode" rows="3" placeholder="الصق الكود هنا..." style="font-family: monospace; font-size: 11px; resize: none;"></textarea>
+                <button type="button" class="btn btn-warning" onclick="importData()" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-paste"></i> استيراد البيانات
+                </button>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
+            
+            <!-- مسح -->
+            <button type="button" class="btn btn-outline" onclick="clearDeviceCode()" style="width: 100%; color: var(--danger); border-color: var(--danger);">
+                <i class="fas fa-unlink"></i> فك ربط هذا الجهاز
+            </button>
+        </div>
+    </div>
+
+    <script src="sync-manager.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
