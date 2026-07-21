@@ -1,4 +1,3 @@
-// service-worker.js - نسخة نظيفة (بدون كاش)
 const CACHE_NAME = 'stack-manager-v2';
 
 self.addEventListener('install', (event) => {
@@ -6,7 +5,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    // امسح كل الكاش القديم
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -16,13 +14,11 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// ❌ NO CACHE - كل حاجة من السيرفر مباشرة
 self.addEventListener('fetch', (event) => {
-    // سيب كل حاجة تمشي عادي من السيرفر
     return;
 });
 
-// Push Notifications
+// Push Notifications - بدون أيقونات
 self.addEventListener('push', (event) => {
     let data = {};
     try { data = event.data.json(); } catch (e) {
@@ -36,8 +32,9 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body || 'لديك اشتراكات تنتهي قريباً!',
-        icon: '/icon-192x192.png',
-        badge: '/badge-72x72.png',
+        // ❌ شيلت الأيقونات
+        // icon: '/icon-192x192.png',
+        // badge: '/badge-72x72.png',
         tag: data.tag || 'subscription-alert',
         requireInteraction: true,
         dir: 'rtl',

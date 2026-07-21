@@ -196,21 +196,90 @@ function exportData() {
 }
 
 function importData(manualCode) {
-    const code = manualCode || document.getElementById('importCode').value.trim().toUpperCase();
+    // ✅ نظف الكود: شيل المسافات وحول لـ uppercase
+    let code = (manualCode || document.getElementById('importCode').value || '').trim().toUpperCase();
     
-    // ✅ التحقق من الكود: لازم يكون 8 أحرف
-    if (!code || code.length !== 8) {
-        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
+    console.log('📥 استيراد الكود:', code, 'الطول:', code.length);
+    
+    // ✅ التحقق: لازم يكون 8 أحرف بالظبط
+    if (!code) {
+        showNotification('⚠️ أدخل الكود الأول!', 'warning');
         return;
     }
     
-    downloadFromCloud(code).then(success => {
-        if (success) {
-            showNotification('✅ تم الاستيراد!', 'success');
-            playSound('success');
-            closeSyncModal();
+    if (code.length !== 8) {
+        showNotification('⚠️ الكود لازم يكون 8 أحرف! (الكود الحالي: ' + code.length + ' حرف)', 'warning');
+        console.log('❌ طول الكود غير صحيح:', code.length, 'الكود:', code);
+        return;
+    }
+    
+    // ✅ تحقق إن الكود بيبدأ بـ SM-
+    if (!code.startsWith('SM-')) {
+        showNotification('⚠️ كود غير صحيح! لازم يبدأ بـ SM-', 'warning');
+        return;
+    }
+    
+ async function downloadFromCloud(importCode) {
+    // ✅ نظف الكود
+    const code = (importCode || '').trim().toUpperCase();
+    
+    console.log('☁️ تحميل من السحابة:', code);
+    
+    if (!code) {
+        showNotification('⚠️ أدخل الكود!', 'warning');
+        return false;
+    }
+    
+    if (code.length !== 8) {
+        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
+        return false;
+    }
+    
+    try {
+        const stored = localStorage.getItem('sync_' + code);
+        if (!stored) {
+            showNotification('⚠️ مفيش بيانات لهذا الكود: ' + code, 'warning');
+            return false;
         }
-    });
+        
+        const data = JSON.parse(stored);
+        
+        const mc = new Set(customers.map(x => x.id));
+        const ms = new Set(services.map(x => x.id));
+        const me = new Set(expenses.map(x => x.id));
+        
+        const merge = confirm(
+            `📥 من: ${code}\n` +
+            `• عملاء: ${data.c.length}\n` +
+            `• خدمات: ${data.s.length}\n` +
+            `• مصروفات: ${data.e.length}\n\n` +
+            `OK = دمج | Cancel = استبدال`
+        );
+        
+        if (merge) {
+            data.c.forEach(x => { if (!mc.has(x.id)) customers.push(x); });
+            data.s.forEach(x => { if (!ms.has(x.id)) services.push(x); });
+            data.e.forEach(x => { if (!me.has(x.id)) expenses.push(x); });
+        } else {
+            customers = data.c;
+            services = data.s;
+            expenses = data.e;
+        }
+        
+        saveData();
+        saveExpenses();
+        renderAll();
+        updateServicesSelect();
+        checkServicesEmpty();
+        
+        return true;
+        
+    } catch (err) {
+        console.error('❌ خطأ:', err);
+        showNotification('❌ كود غير صحيح أو تالف!', 'danger');
+        return false;
+    }
+}
 }
 
 // ===================== MISC =====================

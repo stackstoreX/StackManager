@@ -210,8 +210,9 @@ function sendLocalNotification(title, body, options = {}) {
 
     const defaultOptions = {
         body: body,
-        icon: '/icon-192x192.png',
-        badge: '/badge-72x72.png',
+        // ❌ شيلت الأيقونات
+        // icon: '/icon-192x192.png',
+        // badge: '/badge-72x72.png',
         tag: 'subscription-alert',
         requireInteraction: true,
         dir: 'rtl',
