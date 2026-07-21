@@ -1,13 +1,13 @@
-// ===================== SYNC MANAGER - مع QR Code =====================
+// ===================== SYNC MANAGER - كود 8 أحرف =====================
 
 const B64 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-// كود الجهاز: 8 أحرف (مثال: SM-34U9PV)
+// كود الجهاز: 8 أحرف بالظبط (SM- + 5 حروف)
 function generateDeviceCode() {
     const existing = localStorage.getItem('device_code');
     if (existing) return existing;
     let c = 'SM-';
-    for (let i = 0; i < 6; i++) c += B64[Math.random() * 32 | 0];
+    for (let i = 0; i < 5; i++) c += B64[Math.random() * 32 | 0];
     localStorage.setItem('device_code', c);
     return c;
 }
