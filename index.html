@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام إدارة الاشتراكات - Stack Store Manager</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css?v=2.1.0">
     <meta name="theme-color" content="#6366f1">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <script>window.APP_VERSION = '2.1.0';</script>
 </head>
 <body>
@@ -500,6 +499,18 @@
                     </button>
                     <button type="button" class="btn btn-outline" onclick="closeSettingsModal()">إلغاء</button>
                 </div>
+                
+                <div class="form-group" style="border: 1px solid var(--warning); border-radius: 12px; padding: 15px; margin-top: 15px;">
+                    <label class="form-label" style="color: var(--warning);">
+                        <i class="fab fa-github"></i> GitHub Token
+                    </label>
+                    <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">
+                        لازم عشان تقدر تربط الأجهزة
+                    </p>
+                    <button type="button" class="btn btn-warning" onclick="openTokenModal(); closeSettingsModal();" style="width: 100%;">
+                        <i class="fas fa-key"></i> إعداد GitHub Token
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -509,26 +520,19 @@
         <i class="fas fa-bell-slash" id="pushIcon"></i>
     </button>
     
-    <!-- Sync Modal - ربط الأجهزة -->
+    <!-- Sync Modal -->
     <div class="modal-overlay" id="syncModal">
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
-                <h3 class="modal-title">🔄 ربط الأجهزة</h3>
+                <h3 class="modal-title">🔄 نقل البيانات</h3>
                 <button class="modal-close" onclick="closeSyncModal()"><i class="fas fa-times"></i></button>
             </div>
             
-            <!-- كود الجهاز الحالي -->
-            <div style="background: rgba(99,102,241,0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; margin-bottom: 20px; text-align: center;">
-                <div style="color: var(--gray); font-size: 12px; margin-bottom: 5px;">كود الجهاز الحالي</div>
-                <div id="currentDeviceCode" style="font-size: 22px; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 2px;">---</div>
-            </div>
-            
-            <!-- ✅ QR Code - عرض -->
+            <!-- QR Code للنقل -->
             <div class="form-group" style="border: 1px solid var(--success); border-radius: 12px; padding: 15px; text-align: center;">
-                <label class="form-label" style="color: var(--success); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="fas fa-qrcode"></i> QR Code للنقل السريع
+                <label class="form-label" style="color: var(--success);">
+                    <i class="fas fa-qrcode"></i> امسح QR Code من الجهاز التاني
                 </label>
-                <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">امسح الكود من الجهاز التاني</p>
                 <div id="qrCodeDisplay" style="display: flex; justify-content: center; margin: 10px 0;"></div>
                 <button type="button" class="btn btn-success" onclick="generateQRCode()" style="width: 100%;">
                     <i class="fas fa-sync-alt"></i> توليد QR Code
@@ -537,53 +541,40 @@
             
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
             
-            <!-- تصدير -->
-            <div class="form-group">
-                <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-upload" style="color: var(--success);"></i> نسخ البيانات لهذا الجهاز
-                </label>
-                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اضغط عشان تنسخ كود النقل</p>
-                <button type="button" class="btn btn-success" onclick="exportData()" style="width: 100%; margin-bottom: 10px;">
-                    <i class="fas fa-copy"></i> نسخ كود النقل
-                </button>
-                <input type="text" class="form-input" id="exportCode" readonly style="text-align: center; font-family: monospace; font-size: 14px;" placeholder="الكود هيظهر هنا">
-            </div>
-            
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
-            
-            <!-- ✅ QR Code - قراءة -->
+            <!-- مسح QR Code -->
             <div class="form-group" style="border: 1px solid var(--warning); border-radius: 12px; padding: 15px;">
-                <label class="form-label" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-camera"></i> مسح QR Code
+                <label class="form-label" style="color: var(--warning);">
+                    <i class="fas fa-camera"></i> استيراد من QR Code
                 </label>
-                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اختار صورة QR Code من الجهاز</p>
                 <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRCode(this)">
                 <button type="button" class="btn btn-warning" onclick="document.getElementById('qrFileInput').click()" style="width: 100%;">
                     <i class="fas fa-image"></i> اختار صورة QR Code
                 </button>
-                <div id="qrScanResult" style="margin-top: 10px; font-size: 12px; color: var(--gray);"></div>
+                <div id="qrScanResult" style="margin-top: 10px; font-size: 12px;"></div>
             </div>
             
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
             
-            <!-- استيراد يدوي -->
-            <div class="form-group">
-                <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-download" style="color: var(--warning);"></i> استيراد يدوي
+            <!-- نسخ/لصق يدوي -->
+            <div class="form-group" style="border: 1px solid var(--primary); border-radius: 12px; padding: 15px;">
+                <label class="form-label" style="color: var(--primary);">
+                    <i class="fas fa-copy"></i> نسخ يدوي (للأجهزة اللي مفيش كاميرا)
                 </label>
-                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">الصق الكود اللي نسخته من الجهاز التاني</p>
-                <input type="text" class="form-input" id="importCode" placeholder="مثال: SM-34U9PV" style="text-align: center; font-family: monospace; font-size: 14px; margin-bottom: 10px;">
+                <button type="button" class="btn btn-primary" onclick="exportData()" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-copy"></i> نسخ كل البيانات
+                </button>
+                <textarea class="form-input" id="exportCode" readonly rows="3" style="font-family: monospace; font-size: 10px; margin-bottom: 10px;" placeholder="اضغط نسخ عشان يظهر الكود هنا"></textarea>
+            </div>
+            
+            <div class="form-group" style="border: 1px solid var(--warning); border-radius: 12px; padding: 15px; margin-top: 10px;">
+                <label class="form-label" style="color: var(--warning);">
+                    <i class="fas fa-paste"></i> لصق يدوي
+                </label>
+                <textarea class="form-input" id="importCode" rows="3" style="font-family: monospace; font-size: 10px; margin-bottom: 10px;" placeholder="الصق الكود اللي نسخته من الجهاز التاني هنا..."></textarea>
                 <button type="button" class="btn btn-warning" onclick="importData()" style="width: 100%;">
                     <i class="fas fa-paste"></i> استيراد البيانات
                 </button>
             </div>
-            
-            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
-            
-            <!-- مسح -->
-            <button type="button" class="btn btn-outline" onclick="clearDeviceCode()" style="width: 100%; color: var(--danger); border-color: var(--danger);">
-                <i class="fas fa-unlink"></i> فك ربط هذا الجهاز
-            </button>
         </div>
     </div>
     
@@ -619,7 +610,44 @@
         });
     </script>
 
-    <!-- مكتبة QR Code -->
+<!-- مكتبة QR Code -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<!-- ملفات التطبيق -->
+<script src="script.js?v=2.1.0"></script>
+<script src="sync-manager.js?v=2.1.0"></script>
+
+<script>
+    // ✅ تأكد إن البيانات محملة قبل ما الصفحة تظهر
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 DOM جاهز!');
+        
+        if (typeof loadData === 'function') {
+            loadData();
+            console.log('📊 البيانات:', {
+                customers: customers.length,
+                services: services.length,
+                expenses: expenses.length
+            });
+        }
+        
+        if (typeof renderAll === 'function') {
+            renderAll();
+            console.log('🎨 UI محدث');
+        }
+        
+        if (typeof renderServices === 'function') {
+            renderServices();
+            console.log('📦 الخدمات:', services.length);
+        }
+    });
+
+    // ✅ تسجيل Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(reg => console.log('✅ Service Worker مسجل'))
+            .catch(err => console.error('❌ فشل تسجيل SW:', err));
+    }
+</script>
 </body>
 </html>

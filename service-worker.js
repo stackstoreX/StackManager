@@ -32,9 +32,6 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body || 'لديك اشتراكات تنتهي قريباً!',
-        // ❌ شيلت الأيقونات
-        // icon: '/icon-192x192.png',
-        // badge: '/badge-72x72.png',
         tag: data.tag || 'subscription-alert',
         requireInteraction: true,
         dir: 'rtl',

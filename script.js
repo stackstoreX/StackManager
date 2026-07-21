@@ -66,17 +66,11 @@ function initPushNotifications() {
         return;
     }
 
-    navigator.serviceWorker.register('service-worker.js')
-        .then((registration) => {
-            swRegistration = registration;
-            console.log('✅ Service Worker مسجل');
-            
-            // 🔴 فعل الإشعارات تلقائي أول ما يدخل
-            autoEnablePush();
-        })
-        .catch((err) => {
-            console.error('❌ فشل تسجيل Service Worker:', err);
-        });
+    navigator.serviceWorker.ready.then((registration) => {
+        swRegistration = registration;
+        console.log('✅ Service Worker جاهز');
+        autoEnablePush();
+    });
 
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'NAVIGATE') {
