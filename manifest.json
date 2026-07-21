@@ -1,9 +1,18 @@
 {
-  "name": "Stack Store Manager",
-  "short_name": "Stack Manager",
-  "description": "نظام إدارة الاشتراكات والعملاء",
+  "name": "Stack Manager",
+  "short_name": "Stack",
+  "description": "نظام إدارة الاشتراكات",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1"
+  "background_color": "#0f0f1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
