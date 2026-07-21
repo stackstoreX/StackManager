@@ -126,8 +126,16 @@ async function uploadToCloud() {
 }
 
 async function downloadFromCloud(importCode) {
-    if (!importCode || importCode.length !== 8) {
-        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
+    if (!importCode) {
+        showNotification('⚠️ أدخل الكود الأول!', 'warning');
+        return false;
+    }
+    
+    // ✅ SM-34U9PV = 8 أحرف، SM-ONGZUF = 8 أحرف
+    // لو الكود فيه SM- = 8، لو مفيش = 6
+    const cleanCode = importCode.replace('SM-', '');
+    if (cleanCode.length !== 6) {
+        showNotification('⚠️ كود غير صحيح!', 'warning');
         return false;
     }
     

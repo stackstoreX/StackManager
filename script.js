@@ -1173,10 +1173,18 @@ let settings = JSON.parse(localStorage.getItem('sub_settings')) || {
 };
 
 function openSettingsModal() {
-    document.getElementById('settingsModal').classList.add('show');
-    document.getElementById('merchantName').value = settings.merchantName || '';
-    document.getElementById('merchantEmail').value = settings.merchantEmail || '';
-    document.getElementById('autoNotify').checked = settings.autoNotify !== false;
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.classList.add('show');
+    
+    // تحقق من كل عنصر قبل ما تستخدمه
+    const nameInput = document.getElementById('merchantName');
+    if (nameInput) nameInput.value = settings.merchantName || '';
+    
+    const emailInput = document.getElementById('merchantEmail');
+    if (emailInput) emailInput.value = settings.merchantEmail || '';
+    
+    const autoNotifyInput = document.getElementById('autoNotify');
+    if (autoNotifyInput) autoNotifyInput.checked = settings.autoNotify !== false;
 }
 
 function closeSettingsModal() {
