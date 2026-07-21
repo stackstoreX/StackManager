@@ -815,14 +815,20 @@ function verifySettingsAdminCode() {
     const secretCode = getAdminSecretCode();
 
     if (enteredCode === secretCode) {
-        // Correct code - show admin controls
+        // Correct code - save admin status permanently
+        localStorage.setItem(IS_ADMIN_KEY, 'true');
+        isAdminLoggedIn = true;
         settingsAdminVerified = true;
+
         errorEl.style.display = 'none';
         input.value = '';
 
         // Hide login form, show controls
         loginForm.style.display = 'none';
         controlsArea.style.display = 'block';
+
+        // Update trial widget to show admin
+        updateTrialWidget();
 
         showNotification('👑 تم الدخول لمنطقة الأدمن', 'success');
         playSound('success');
@@ -868,9 +874,10 @@ function resetSettingsAdminAccess() {
 function initActivationSystem() {
     console.log('🔐 Initializing activation system...');
 
-    // Check if admin is logged in
+    // Check if admin is logged in from localStorage
     if (localStorage.getItem(IS_ADMIN_KEY) === 'true') {
         isAdminLoggedIn = true;
+        console.log('👑 Admin status loaded from localStorage');
     }
 
     // Register this device (ALL visitors get registered)
@@ -879,7 +886,7 @@ function initActivationSystem() {
     const timeLeft = getTrialTimeLeft();
 
     // Case 1: Admin → always open, show admin badge
-    if (isAdmin()) {
+    if (isAdmin() || isAdminLoggedIn) {
         console.log('👑 Admin detected - full access');
         hideLockScreen();
         startTrialWidget();
