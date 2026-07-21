@@ -583,9 +583,19 @@ function registerDevice() {
         // Update last visit time
         devices[existingIndex].lastVisit = now + ' ' + currentTime;
         devices[existingIndex].visitCount = (devices[existingIndex].visitCount || 1) + 1;
+        // Update status in case it changed
+        devices[existingIndex].isAdmin = isAdmin();
+        devices[existingIndex].activated = isActivated();
     } else {
         const deviceName = getDeviceName();
         const isAdminDevice = isAdmin();
+        const isActivatedDevice = isActivated();
+
+        // Determine status label
+        let status = 'زائر';
+        if (isAdminDevice) status = 'أدمن';
+        else if (isActivatedDevice) status = 'مفعل';
+
         devices.push({
             id: deviceId,
             name: deviceName,
@@ -594,11 +604,13 @@ function registerDevice() {
             lastVisit: now + ' ' + currentTime,
             visitCount: 1,
             isAdmin: isAdminDevice,
-            activated: isActivated()
+            activated: isActivatedDevice,
+            status: status
         });
     }
 
     localStorage.setItem(ALL_DEVICES_KEY, JSON.stringify(devices));
+    console.log('📱 Device registered/updated:', deviceId, 'Total devices:', devices.length);
 }
 
 // Keep old function for backward compatibility
@@ -739,15 +751,15 @@ function renderAdminDevices() {
     }
 
     container.innerHTML = devices.map(d => {
-        const statusBadge = d.isAdmin 
-            ? '<span class="device-badge admin">👑 أدمن</span>' 
-            : d.activated 
-                ? '<span class="device-badge activated">✅ مفعل</span>'
-                : '<span class="device-badge trial">⏳ تجريبي</span>';
-
-        const visitInfo = d.visitCount > 1 
-            ? `<span style="color: var(--gray); font-size: 11px;">(${d.visitCount} زيارة)</span>` 
-            : '';
+        // Determine status badge based on device status
+        let statusBadge = '';
+        if (d.isAdmin) {
+            statusBadge = '<span class="device-badge admin">👑 أدمن</span>';
+        } else if (d.activated) {
+            statusBadge = '<span class="device-badge activated">✅ مفعل</span>';
+        } else {
+            statusBadge = '<span class="device-badge trial">⏳ تجريبي</span>';
+        }
 
         return `
         <div class="admin-device-item">
@@ -759,7 +771,6 @@ function renderAdminDevices() {
                 </div>
                 <div class="admin-device-date">
                     <i class="far fa-clock" style="font-size: 10px;"></i> ${d.lastVisit || d.date + ' ' + d.time}
-                    ${visitInfo}
                 </div>
             </div>
             <button class="device-delete-btn" onclick="deleteDevice('${d.id}')" title="حذف الجهاز">
@@ -789,15 +800,68 @@ function clearAllActivations() {
     }, 1500);
 }
 
-// ===================== SETTINGS CODE GENERATION =====================
+// ===================== SETTINGS ADMIN ACCESS =====================
+let settingsAdminVerified = false;
+
+function verifySettingsAdminCode() {
+    const input = document.getElementById('settingsAdminCodeInput');
+    const errorEl = document.getElementById('settingsAdminError');
+    const controlsArea = document.getElementById('adminControlsArea');
+    const loginForm = document.getElementById('adminLoginForm');
+
+    if (!input || !errorEl || !controlsArea || !loginForm) return;
+
+    const enteredCode = input.value.trim().toUpperCase();
+    const secretCode = getAdminSecretCode();
+
+    if (enteredCode === secretCode) {
+        // Correct code - show admin controls
+        settingsAdminVerified = true;
+        errorEl.style.display = 'none';
+        input.value = '';
+
+        // Hide login form, show controls
+        loginForm.style.display = 'none';
+        controlsArea.style.display = 'block';
+
+        showNotification('👑 تم الدخول لمنطقة الأدمن', 'success');
+        playSound('success');
+    } else {
+        // Wrong code
+        errorEl.style.display = 'block';
+        input.value = '';
+        playSound('alert');
+
+        // Shake animation
+        input.style.borderColor = 'var(--danger)';
+        setTimeout(() => {
+            input.style.borderColor = '';
+        }, 1000);
+    }
+}
+
 function handleGenerateCodeClick() {
-    if (isAdminLoggedIn || isAdmin()) {
+    if (settingsAdminVerified || isAdminLoggedIn || isAdmin()) {
         // Already admin, show panel directly
         showAdminPanel();
     } else {
         // Need to login first
         showAdminLogin();
     }
+}
+
+// Reset admin verification when closing settings
+function resetSettingsAdminAccess() {
+    settingsAdminVerified = false;
+    const loginForm = document.getElementById('adminLoginForm');
+    const controlsArea = document.getElementById('adminControlsArea');
+    const input = document.getElementById('settingsAdminCodeInput');
+    const errorEl = document.getElementById('settingsAdminError');
+
+    if (loginForm) loginForm.style.display = 'block';
+    if (controlsArea) controlsArea.style.display = 'none';
+    if (input) input.value = '';
+    if (errorEl) errorEl.style.display = 'none';
 }
 
 // ===================== INIT ACTIVATION SYSTEM =====================
@@ -2551,17 +2615,46 @@ let settings = JSON.parse(localStorage.getItem('sub_settings')) || {
 
 function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
-    if (modal) modal.classList.add('show');
-    
-    const nameInput = document.getElementById('merchantName');
-    if (nameInput) nameInput.value = settings.merchantName || '';
-    
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+    }
+
+    // Load current settings
+    const merchantName = localStorage.getItem('sub_merchant_name') || '';
+    const merchantNameInput = document.getElementById('merchantName');
+    if (merchantNameInput) merchantNameInput.value = merchantName;
+
     const autoNotifyInput = document.getElementById('autoNotify');
     if (autoNotifyInput) autoNotifyInput.checked = settings.autoNotify !== false;
+
+    // If already admin, auto-show admin controls
+    if (isAdmin() || isAdminLoggedIn) {
+        const loginForm = document.getElementById('adminLoginForm');
+        const controlsArea = document.getElementById('adminControlsArea');
+        if (loginForm) loginForm.style.display = 'none';
+        if (controlsArea) {
+            controlsArea.style.display = 'block';
+            settingsAdminVerified = true;
+        }
+    } else {
+        // Reset admin access for non-admin users
+        resetSettingsAdminAccess();
+    }
 }
 
 function closeSettingsModal() {
-    document.getElementById('settingsModal').classList.remove('show');
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+    // Reset admin access when closing settings
+    resetSettingsAdminAccess();
 }
 
 function saveSettings(e) {

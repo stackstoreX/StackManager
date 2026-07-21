@@ -34,7 +34,7 @@
                 <span id="countdownSeconds">00</span>
             </div>
 
-            <a href="https://wa.me/201018484572" class="btn btn-whatsapp" target="_blank">
+            <a href="https://wa.me/201XXXXXXXXX" class="btn btn-whatsapp" target="_blank">
                 <i class="fab fa-whatsapp"></i>
                 تواصل عبر واتساب (299 ج.م)
             </a>
@@ -153,11 +153,6 @@
         </div>
     </div>
 
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">
-        <i class="fas fa-bars"></i>
-    </button>
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>  
-
     <!-- Notification Panel -->
     <div class="notification-panel" id="notificationPanel">
         <div class="notification-stack" id="notificationStack" style="display:none;">
@@ -172,10 +167,16 @@
         </div>
     </div>    
 
+    <!-- Mobile Menu Toggle (outside sidebar) -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
+
     <!-- Sidebar -->
     <div class="sidebar" id="mainSidebar">
         <div class="logo">
-            <img src="logo.png" alt="Logo" class="logo-img">
+            <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.marginRight='0';">
             <div class="logo-text">Stack Manager</div>
         </div>
         <div class="nav-item active" onclick="showSection('dashboard')">
@@ -617,35 +618,6 @@
                     <input type="text" class="form-input" id="merchantName" placeholder="مثال: Stack Store">
                 </div>
 
-                <!-- Admin Secret Code -->
-                <div class="form-group admin-code-section">
-                    <label class="form-label" style="color: var(--warning);">
-                        <i class="fas fa-key"></i> كود الأدمن السري
-                    </label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="password" class="admin-code-input" id="adminSecretCodeInput" placeholder="••••••" maxlength="6">
-                        <button type="button" class="btn btn-outline" onclick="toggleAdminCodeVisibility()" style="padding: 10px 14px;">
-                            <i class="fas fa-eye" id="adminCodeEye"></i>
-                        </button>
-                    </div>
-                    <button type="button" class="btn btn-primary" onclick="saveAdminSecretCodeFromSettings()" style="width: 100%; margin-top: 10px;">
-                        <i class="fas fa-save"></i> حفظ الكود
-                    </button>
-                </div>
-
-                <!-- Client Activation -->
-                <div class="form-group" style="border: 1px solid var(--primary); border-radius: 12px; padding: 15px;">
-                    <label class="form-label" style="color: var(--primary);">
-                        <i class="fas fa-lock"></i> تفعيل العملاء
-                    </label>
-                    <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">
-                        اضغط الزرار عشان تولد كود جديد للعميل
-                    </p>
-                    <button type="button" class="btn btn-primary" onclick="handleGenerateCodeClick()" style="width: 100%;">
-                        <i class="fas fa-plus"></i> توليد كود جديد
-                    </button>
-                </div>
-
                 <!-- Push Notifications -->
                 <div class="form-group" style="border: 1px solid var(--primary); border-radius: 12px; padding: 15px;">
                     <label class="form-label" style="color: var(--primary);">
@@ -664,6 +636,61 @@
                         <input type="checkbox" id="autoNotify" checked style="width: 18px; height: 18px;">
                         <span>تفعيل الإشعارات التلقائية</span>
                     </label>
+                </div>
+
+                <!-- Admin Access Section (Hidden by default) -->
+                <div class="admin-access-section" id="adminAccessSection">
+                    <div class="admin-access-divider">
+                        <span>🔐 منطقة الأدمن</span>
+                    </div>
+
+                    <!-- Admin Login Input -->
+                    <div class="form-group" id="adminLoginForm">
+                        <label class="form-label" style="color: var(--warning);">
+                            <i class="fas fa-shield-alt"></i> أدخل كود الأدمن السري
+                        </label>
+                        <div class="admin-login-row">
+                            <input type="password" class="admin-code-input" id="settingsAdminCodeInput" placeholder="••••••" maxlength="6">
+                            <button type="button" class="btn btn-primary" onclick="verifySettingsAdminCode()">
+                                <i class="fas fa-unlock"></i> دخول
+                            </button>
+                        </div>
+                        <p id="settingsAdminError" class="activation-error" style="display: none; margin-top: 8px;">⚠️ كود الأدمن غير صحيح</p>
+                    </div>
+
+                    <!-- Hidden Admin Controls (shown after verification) -->
+                    <div id="adminControlsArea" style="display: none;">
+
+                        <!-- Change Admin Code -->
+                        <div class="form-group admin-code-section">
+                            <label class="form-label" style="color: var(--warning);">
+                                <i class="fas fa-key"></i> تغيير كود الأدمن السري
+                            </label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="password" class="admin-code-input" id="adminSecretCodeInput" placeholder="كود جديد 6 أحرف" maxlength="6">
+                                <button type="button" class="btn btn-outline" onclick="toggleAdminCodeVisibility()" style="padding: 10px 14px;">
+                                    <i class="fas fa-eye" id="adminCodeEye"></i>
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="saveAdminSecretCodeFromSettings()" style="width: 100%; margin-top: 10px;">
+                                <i class="fas fa-save"></i> حفظ الكود الجديد
+                            </button>
+                        </div>
+
+                        <!-- Client Activation -->
+                        <div class="form-group" style="border: 1px solid var(--primary); border-radius: 12px; padding: 15px;">
+                            <label class="form-label" style="color: var(--primary);">
+                                <i class="fas fa-lock"></i> تفعيل العملاء
+                            </label>
+                            <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">
+                                اضغط الزرار عشان تولد كود جديد للعميل
+                            </p>
+                            <button type="button" class="btn btn-primary" onclick="handleGenerateCodeClick()" style="width: 100%;">
+                                <i class="fas fa-plus"></i> توليد كود جديد
+                            </button>
+                        </div>
+
+                    </div>
                 </div>
 
                 <div style="margin-top: 20px; display: flex; gap: 12px;">

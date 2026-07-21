@@ -2365,6 +2365,8 @@ body {
     margin-bottom: 8px;
     border: 1px solid var(--glass-border);
     transition: all 0.3s ease;
+    direction: ltr;
+    text-align: left;
 }
 
 .admin-device-item:hover {
@@ -2382,11 +2384,13 @@ body {
     background: var(--glass);
     border-radius: 10px;
     flex-shrink: 0;
+    order: 1;
 }
 
 .admin-device-info {
     flex: 1;
     min-width: 0;
+    order: 2;
 }
 
 .admin-device-name {
@@ -2396,12 +2400,14 @@ body {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    direction: rtl;
 }
 
 .admin-device-date {
     font-size: 12px;
     color: var(--gray);
     margin-top: 4px;
+    direction: rtl;
 }
 
 .device-badge {
@@ -2444,6 +2450,7 @@ body {
     font-size: 13px;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    order: 3;
 }
 
 .device-delete-btn:hover {
@@ -2585,4 +2592,60 @@ body {
     .trial-widget-label {
         font-size: 11px;
     }
+}
+
+
+/* ===== ADMIN ACCESS SECTION (Settings) ===== */
+.admin-access-section {
+    margin-top: 25px;
+    border-top: 2px dashed var(--glass-border);
+    padding-top: 20px;
+}
+
+.admin-access-divider {
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.admin-access-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.admin-access-divider span {
+    position: relative;
+    background: var(--card-bg);
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--warning);
+}
+
+.admin-login-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.admin-login-row .admin-code-input {
+    flex: 1;
+}
+
+.admin-login-row .btn {
+    flex-shrink: 0;
+    padding: 12px 20px;
+}
+
+#adminControlsArea {
+    animation: fadeIn 0.4s ease;
+}
+
+#adminControlsArea .form-group {
+    margin-bottom: 20px;
 }
