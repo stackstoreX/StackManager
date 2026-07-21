@@ -509,8 +509,8 @@
     <button class="push-toggle muted" id="pushToggle" onclick="togglePushNotifications()" title="تفعيل الإشعارات">
         <i class="fas fa-bell-slash" id="pushIcon"></i>
     </button>
-        
-        <!-- Sync Modal - ربط الأجهزة -->
+    
+    <!-- Sync Modal - ربط الأجهزة -->
     <div class="modal-overlay" id="syncModal">
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
@@ -524,28 +524,57 @@
                 <div id="currentDeviceCode" style="font-size: 22px; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 2px;">---</div>
             </div>
             
+            <!-- ✅ QR Code - عرض -->
+            <div class="form-group" style="border: 1px solid var(--success); border-radius: 12px; padding: 15px; text-align: center;">
+                <label class="form-label" style="color: var(--success); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-qrcode"></i> QR Code للنقل السريع
+                </label>
+                <p style="color: var(--gray); font-size: 12px; margin: 8px 0;">امسح الكود من الجهاز التاني</p>
+                <div id="qrCodeDisplay" style="display: flex; justify-content: center; margin: 10px 0;"></div>
+                <button type="button" class="btn btn-success" onclick="generateQRCode()" style="width: 100%;">
+                    <i class="fas fa-sync-alt"></i> توليد QR Code
+                </button>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
+            
             <!-- تصدير -->
             <div class="form-group">
                 <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-upload" style="color: var(--success);"></i> نسخ البيانات لهذا الجهاز
                 </label>
-                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اضغط عشان تنسخ كود بنقل كل البيانات</p>
+                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اضغط عشان تنسخ كود النقل</p>
                 <button type="button" class="btn btn-success" onclick="exportData()" style="width: 100%; margin-bottom: 10px;">
                     <i class="fas fa-copy"></i> نسخ كود النقل
                 </button>
-                <input type="text" class="form-input" id="exportCode" readonly style="text-align: center; font-family: monospace; font-size: 11px;" placeholder="الكود هيظهر هنا">
+                <input type="text" class="form-input" id="exportCode" readonly style="text-align: center; font-family: monospace; font-size: 14px;" placeholder="الكود هيظهر هنا">
             </div>
             
             <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
             
-            <!-- استيراد -->
+            <!-- ✅ QR Code - قراءة -->
+            <div class="form-group" style="border: 1px solid var(--warning); border-radius: 12px; padding: 15px;">
+                <label class="form-label" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-camera"></i> مسح QR Code
+                </label>
+                <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">اختار صورة QR Code من الجهاز</p>
+                <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRCode(this)">
+                <button type="button" class="btn btn-warning" onclick="document.getElementById('qrFileInput').click()" style="width: 100%;">
+                    <i class="fas fa-image"></i> اختار صورة QR Code
+                </button>
+                <div id="qrScanResult" style="margin-top: 10px; font-size: 12px; color: var(--gray);"></div>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 20px 0;">
+            
+            <!-- استيراد يدوي -->
             <div class="form-group">
                 <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-download" style="color: var(--warning);"></i> استيراد البيانات من جهاز آخر
+                    <i class="fas fa-download" style="color: var(--warning);"></i> استيراد يدوي
                 </label>
                 <p style="color: var(--gray); font-size: 12px; margin: 5px 0 10px;">الصق الكود اللي نسخته من الجهاز التاني</p>
-                <textarea class="form-input" id="importCode" rows="3" placeholder="الصق الكود هنا..." style="font-family: monospace; font-size: 11px; resize: none;"></textarea>
-                <button type="button" class="btn btn-warning" onclick="importData()" style="width: 100%; margin-top: 10px;">
+                <input type="text" class="form-input" id="importCode" placeholder="مثال: SM-34U9PV" style="text-align: center; font-family: monospace; font-size: 14px; margin-bottom: 10px;">
+                <button type="button" class="btn btn-warning" onclick="importData()" style="width: 100%;">
                     <i class="fas fa-paste"></i> استيراد البيانات
                 </button>
             </div>
@@ -590,5 +619,8 @@
             }
         });
     </script>
+
+    <!-- مكتبة QR Code -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>

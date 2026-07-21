@@ -1,13 +1,13 @@
-// ===================== SYNC MANAGER - كود 8 أحرف فقط =====================
+// ===================== SYNC MANAGER - مع QR Code =====================
 
-const B64 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // بدون I,O,0,1
+const B64 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-// كود الجهاز: 8 أحرف (مثال: X7K9M2P4)
+// كود الجهاز: 8 أحرف
 function generateDeviceCode() {
     const existing = localStorage.getItem('device_code');
     if (existing) return existing;
-    let c = '';
-    for (let i = 0; i < 8; i++) c += B64[Math.random() * 32 | 0];
+    let c = 'SM-';
+    for (let i = 0; i < 6; i++) c += B64[Math.random() * 32 | 0];
     localStorage.setItem('device_code', c);
     return c;
 }
@@ -16,15 +16,99 @@ function getDeviceCode() {
     return localStorage.getItem('device_code') || generateDeviceCode();
 }
 
-// ===================== نظام الربط السحابي البسيط =====================
+// ===================== QR CODE =====================
 
-// خادم بسيط مجاني (jsonbin.io أو glitch أو أي حاجة)
-const SYNC_SERVER = 'https://api.jsonbin.io/v3/b'; // أو أي خادم تختاره
+// توليد QR Code
+function generateQRCode() {
+    const code = getDeviceCode();
+    const container = document.getElementById('qrCodeDisplay');
+    
+    // امسح القديم
+    container.innerHTML = '';
+    
+    // ارفع البيانات الأول
+    uploadToCloud().then(success => {
+        if (!success) {
+            showNotification('❌ فشل رفع البيانات', 'danger');
+            return;
+        }
+        
+        // توليد QR Code
+        new QRCode(container, {
+            text: code,
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        showNotification('✅ تم توليد QR Code!', 'success');
+    });
+}
 
-// رفع البيانات للسحابة
+// مسح QR Code من صورة
+function scanQRCode(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const resultDiv = document.getElementById('qrScanResult');
+    resultDiv.innerHTML = '<div class="qr-scan-overlay"><i class="fas fa-spinner fa-spin" style="color: var(--success); font-size: 30px;"></i></div>';
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // استخدم jsQR مكتبة للقراءة
+            // لو مش موجودة، نستخدم طريقة بديلة
+            readQRWithJsQR(img, resultDiv);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// قراءة QR باستخدام jsQR
+function readQRWithJsQR(img, resultDiv) {
+    // نحتاج مكتبة jsQR
+    if (typeof jsQR === 'undefined') {
+        // حمل المكتبة ديناميكياً
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+        script.onload = () => processQRImage(img, resultDiv);
+        document.head.appendChild(script);
+    } else {
+        processQRImage(img, resultDiv);
+    }
+}
+
+function processQRImage(img, resultDiv) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    
+    if (code) {
+        resultDiv.innerHTML = `<div style="color: var(--success);"><i class="fas fa-check-circle"></i> تم القراءة: ${code.data}</div>`;
+        
+        // حط الكود في حقل الاستيراد
+        document.getElementById('importCode').value = code.data;
+        
+        // استورد تلقائياً
+        setTimeout(() => importData(code.data), 500);
+    } else {
+        resultDiv.innerHTML = `<div style="color: var(--danger);"><i class="fas fa-times-circle"></i> مقدرش أقرأ QR Code، جرب كود يدوي</div>`;
+    }
+}
+
+// ===================== CLOUD SYNC =====================
+
 async function uploadToCloud() {
     const code = getDeviceCode();
-    
     const data = {
         c: JSON.parse(localStorage.getItem('sub_customers') || '[]'),
         s: JSON.parse(localStorage.getItem('sub_services') || '[]'),
@@ -33,31 +117,25 @@ async function uploadToCloud() {
     };
     
     try {
-        // نستخدم localStorage كـ "سحابة" مؤقتة (لحد ما تجيب خادم حقيقي)
         localStorage.setItem('sync_' + code, JSON.stringify(data));
-        
-        showNotification('✅ تم رفع البيانات! الكود: ' + code, 'success');
-        playSound('success');
-        
-        return code;
+        return true;
     } catch (err) {
-        showNotification('❌ فشل الرفع', 'danger');
-        return null;
+        console.error('❌ فشل الرفع:', err);
+        return false;
     }
 }
 
-// تحميل البيانات من السحابة
 async function downloadFromCloud(importCode) {
     if (!importCode || importCode.length !== 8) {
         showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
-        return;
+        return false;
     }
     
     try {
         const stored = localStorage.getItem('sync_' + importCode);
         if (!stored) {
             showNotification('⚠️ مفيش بيانات لهذا الكود!', 'warning');
-            return;
+            return false;
         }
         
         const data = JSON.parse(stored);
@@ -66,7 +144,13 @@ async function downloadFromCloud(importCode) {
         const ms = new Set(services.map(x => x.id));
         const me = new Set(expenses.map(x => x.id));
         
-        const merge = confirm(`من: ${importCode}\nعملاء:${data.c.length} خدمات:${data.s.length}\nOK=دمج Cancel=استبدال`);
+        const merge = confirm(
+            `📥 من: ${importCode}\n` +
+            `• عملاء: ${data.c.length}\n` +
+            `• خدمات: ${data.s.length}\n` +
+            `• مصروفات: ${data.e.length}\n\n` +
+            `OK = دمج | Cancel = استبدال`
+        );
         
         if (merge) {
             data.c.forEach(x => { if (!mc.has(x.id)) customers.push(x); });
@@ -84,46 +168,51 @@ async function downloadFromCloud(importCode) {
         updateServicesSelect();
         checkServicesEmpty();
         
-        showNotification('✅ تم الاستيراد!', 'success');
-        playSound('success');
-        closeSyncModal();
+        return true;
         
     } catch (err) {
-        showNotification('❌ كود غير صحيح!', 'danger');
+        console.error('❌ خطأ:', err);
+        return false;
     }
 }
 
-// ===================== EXPORT/IMPORT (8 أحرف فقط) =====================
+// ===================== EXPORT/IMPORT =====================
 
 function exportData() {
     const code = getDeviceCode();
     
-    // ارفع البيانات
-    uploadToCloud();
-    
-    // اعرض الكود فقط (8 أحرف)
-    document.getElementById('exportCode').value = code;
-    
-    // انسخ الكود
-    navigator.clipboard.writeText(code).then(() => {
-        showNotification('✅ تم نسخ الكود: ' + code, 'success');
-    }).catch(() => {
-        showNotification('⚠️ انسخ الكود يدوياً', 'warning');
+    uploadToCloud().then(success => {
+        if (!success) {
+            showNotification('❌ فشل رفع البيانات', 'danger');
+            return;
+        }
+        
+        document.getElementById('exportCode').value = code;
+        
+        navigator.clipboard.writeText(code).then(() => {
+            showNotification('✅ تم النسخ: ' + code, 'success');
+            playSound('success');
+        }).catch(() => {
+            showNotification('⚠️ انسخ يدوياً', 'warning');
+        });
     });
-    
-    console.log('📤 كود الجهاز:', code);
 }
 
-function importData() {
-    const code = document.getElementById('importCode').value.trim().toUpperCase();
+function importData(manualCode) {
+    const code = manualCode || document.getElementById('importCode').value.trim().toUpperCase();
     
-    if (code.length !== 8) {
+    if (!code || code.length !== 8) {
         showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
         return;
     }
     
-    // حمل البيانات
-    downloadFromCloud(code);
+    downloadFromCloud(code).then(success => {
+        if (success) {
+            showNotification('✅ تم الاستيراد!', 'success');
+            playSound('success');
+            closeSyncModal();
+        }
+    });
 }
 
 // ===================== MISC =====================
@@ -133,6 +222,9 @@ function openSyncModal() {
     document.getElementById('currentDeviceCode').textContent = getDeviceCode();
     document.getElementById('exportCode').value = '';
     document.getElementById('importCode').value = '';
+    document.getElementById('qrCodeDisplay').innerHTML = '';
+    document.getElementById('qrScanResult').innerHTML = '';
+    document.getElementById('qrFileInput').value = '';
 }
 
 function closeSyncModal() {
@@ -140,7 +232,7 @@ function closeSyncModal() {
 }
 
 function clearDeviceCode() {
-    if (confirm('مسح كود الجهاز؟')) {
+    if (confirm('هل أنت متأكد؟')) {
         localStorage.removeItem('device_code');
         document.getElementById('currentDeviceCode').textContent = '---';
         showNotification('🔓 تم المسح', 'success');
