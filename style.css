@@ -1305,6 +1305,326 @@ body {
     font-weight: 700;
 }
 
+/* ===== MOBILE CUSTOMER CARDS (COLLAPSIBLE) ===== */
+@media (max-width: 768px) {
+    /* Hide table on mobile, show cards */
+    #customersTableContainer .data-table,
+    #recentCustomers .data-table {
+        display: none;
+    }
+    
+    .customers-mobile-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .customer-mobile-card {
+        background: var(--glass);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.4s ease;
+        cursor: pointer;
+    }
+    
+    .customer-mobile-card:active {
+        transform: scale(0.98);
+    }
+    
+    /* Status indicator strip at top */
+    .customer-mobile-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 20px 20px 0 0;
+        z-index: 2;
+    }
+    
+    .customer-mobile-card.status-active::before {
+        background: linear-gradient(90deg, var(--success), #059669);
+    }
+    
+    .customer-mobile-card.status-expiring::before {
+        background: linear-gradient(90deg, var(--warning), #d97706);
+    }
+    
+    .customer-mobile-card.status-expired::before {
+        background: linear-gradient(90deg, var(--danger), #dc2626);
+    }
+    
+    .customer-mobile-card.status-completed::before {
+        background: linear-gradient(90deg, var(--gray), #64748b);
+    }
+    
+    /* ===== COLLAPSED HEADER (always visible) ===== */
+    .customer-card-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 20px;
+        position: relative;
+    }
+    
+    .customer-card-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    
+    .customer-card-avatar.renewed {
+        background: linear-gradient(135deg, var(--success), #059669);
+    }
+    
+    .customer-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .customer-card-name {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .customer-card-service {
+        font-size: 13px;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .customer-card-service .service-icon {
+        font-size: 15px;
+    }
+    
+    /* Price & Status in header (collapsed view) */
+    .customer-card-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+    
+    .customer-card-price {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .customer-card-status-compact {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .customer-card-status-compact.status-active {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+    }
+    
+    .customer-card-status-compact.status-expiring {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+    }
+    
+    .customer-card-status-compact.status-expired {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+    }
+    
+    .customer-card-status-compact.status-completed {
+        background: rgba(148, 163, 184, 0.15);
+        color: var(--gray);
+    }
+    
+    /* Expand icon */
+    .customer-card-expand {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--gray);
+        font-size: 12px;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+    
+    .customer-mobile-card.expanded .customer-card-expand {
+        transform: translateX(-50%) rotate(180deg);
+        opacity: 1;
+        color: var(--primary);
+    }
+    
+    /* ===== EXPANDABLE BODY (hidden by default) ===== */
+    .customer-card-body {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 0 20px 18px 20px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .customer-mobile-card.expanded .customer-card-body {
+        display: grid;
+    }
+    
+    .customer-card-field {
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .customer-card-field.full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .customer-card-label {
+        font-size: 11px;
+        color: var(--gray);
+        margin-bottom: 5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .customer-card-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--light);
+    }
+    
+    .customer-card-value.days-left {
+        font-size: 13px;
+    }
+    
+    .customer-card-value.days-left.active {
+        color: var(--success);
+    }
+    
+    .customer-card-value.days-left.expiring {
+        color: var(--warning);
+    }
+    
+    .customer-card-value.days-left.expired {
+        color: var(--danger);
+    }
+    
+    /* ===== EXPANDABLE FOOTER (hidden by default) ===== */
+    .customer-card-footer {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 20px 18px 20px;
+        border-top: 1px solid var(--glass-border);
+        padding-top: 15px;
+        margin-top: 0;
+    }
+    
+    .customer-mobile-card.expanded .customer-card-footer {
+        display: flex;
+    }
+    
+    .customer-card-status {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .customer-card-status.status-active {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+    }
+    
+    .customer-card-status.status-expiring {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+    }
+    
+    .customer-card-status.status-expired {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+    }
+    
+    .customer-card-status.status-completed {
+        background: rgba(148, 163, 184, 0.15);
+        color: var(--gray);
+    }
+    
+    .customer-card-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .customer-card-actions .action-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        font-size: 15px;
+    }
+    
+    /* Renew badge */
+    .renew-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 8px;
+        margin-right: 6px;
+        font-weight: 700;
+    }
+    
+    /* Source icon in header */
+    .customer-card-source-icon {
+        font-size: 12px;
+        margin-right: 4px;
+    }
+}
+
+/* Desktop: hide mobile cards */
+@media (min-width: 769px) {
+    .customers-mobile-cards {
+        display: none !important;
+    }
+}
+
 /* Responsive Finance */
 @media (max-width: 768px) {
     .finance-summary {
@@ -1407,5 +1727,862 @@ body {
         width: 45px;
         height: 45px;
         font-size: 18px;
+    }
+}
+
+/* ===== DISMISSIBLE NOTIFICATIONS ===== */
+.notification {
+    position: relative;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    cursor: grab;
+}
+
+.notification:active {
+    cursor: grabbing;
+}
+
+.notification.swiping {
+    transition: none;
+}
+
+.notification.dismissed {
+    transform: translateX(-120%) !important;
+    opacity: 0;
+}
+
+.notification-dismiss {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.2);
+    border: 2px solid var(--success);
+    color: var(--success);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.notification-dismiss:hover {
+    background: var(--success);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.notification-dismiss i {
+    pointer-events: none;
+}
+
+.notification-content {
+    padding-left: 45px;
+}
+
+.notification::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--danger);
+    border-radius: 16px 0 0 16px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.notification.swipe-left::after {
+    opacity: 1;
+}
+
+/* ===== NOTIFICATION STACK ===== */
+.notification-stack {
+    background: var(--dark-light);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 0;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    animation: slideInLeft 0.4s ease;
+    overflow: hidden;
+    max-width: 400px;
+    width: 100%;
+}
+
+.notification-stack-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2));
+    border-bottom: 1px solid var(--glass-border);
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.stack-count {
+    background: var(--danger);
+    color: white;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 800;
+    min-width: 28px;
+    text-align: center;
+}
+
+.stack-dismiss-all {
+    margin-right: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--danger);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.stack-dismiss-all:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.notification-stack-body {
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-stack-body .notification {
+    margin-bottom: 10px;
+    animation: fadeIn 0.3s ease;
+}
+
+.notification-stack-body .notification:last-child {
+    margin-bottom: 0;
+}
+
+.stack-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.stack-empty i {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: block;
+    opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+    .notification {
+        touch-action: pan-y;
+    }
+    
+    .notification-dismiss {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+}
+
+/* ===== MOBILE EXPENSE CARDS (COLLAPSIBLE) ===== */
+@media (max-width: 768px) {
+    #expensesContainer .expense-table {
+        display: none;
+    }
+    
+    .expenses-mobile-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .expense-mobile-card {
+        background: var(--glass);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.4s ease;
+        cursor: pointer;
+    }
+    
+    .expense-mobile-card:active {
+        transform: scale(0.98);
+    }
+    
+    /* Status indicator strip at top - red for expenses */
+    .expense-mobile-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 20px 20px 0 0;
+        background: linear-gradient(90deg, var(--danger), #dc2626);
+        z-index: 2;
+    }
+    
+    /* ===== COLLAPSED HEADER ===== */
+    .expense-card-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 20px;
+        position: relative;
+    }
+    
+    .expense-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--danger), #dc2626);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    .expense-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .expense-card-name {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .expense-card-service {
+        font-size: 13px;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .expense-card-service .service-icon {
+        font-size: 15px;
+    }
+    
+    /* Amount & Date in header */
+    .expense-card-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+    
+    .expense-card-amount {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        font-size: 13px;
+        font-weight: 800;
+        padding: 5px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .expense-card-date-compact {
+        font-size: 11px;
+        color: var(--gray);
+        font-weight: 600;
+    }
+    
+    /* Expand icon */
+    .expense-card-expand {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--gray);
+        font-size: 12px;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+    
+    .expense-mobile-card.expanded .expense-card-expand {
+        transform: translateX(-50%) rotate(180deg);
+        opacity: 1;
+        color: var(--danger);
+    }
+    
+    /* ===== EXPANDABLE BODY ===== */
+    .expense-card-body {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 0 20px 18px 20px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .expense-mobile-card.expanded .expense-card-body {
+        display: grid;
+    }
+    
+    .expense-card-field {
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .expense-card-field.full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .expense-card-label {
+        font-size: 11px;
+        color: var(--gray);
+        margin-bottom: 5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .expense-card-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--light);
+    }
+    
+    .expense-card-value.amount {
+        color: var(--danger);
+        font-weight: 800;
+        font-size: 16px;
+    }
+    
+    /* ===== EXPANDABLE FOOTER ===== */
+    .expense-card-footer {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 20px 18px 20px;
+        border-top: 1px solid var(--glass-border);
+        padding-top: 15px;
+    }
+    
+    .expense-mobile-card.expanded .expense-card-footer {
+        display: flex;
+    }
+    
+    .expense-card-total {
+        font-size: 14px;
+        color: var(--gray);
+        font-weight: 600;
+    }
+    
+    .expense-card-total strong {
+        color: var(--danger);
+        font-size: 16px;
+    }
+    
+    .expense-card-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .expense-card-actions .action-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        font-size: 15px;
+    }
+}
+
+/* Desktop: hide mobile expense cards */
+@media (min-width: 769px) {
+    .expenses-mobile-cards {
+        display: none !important;
+    }
+}
+
+
+
+/* ===== TRIAL LOCK SCREEN ===== */
+.trial-lock-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--dark) 0%, #1a1a2e 50%, #16213e 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.trial-lock-content {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 450px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+    animation: fadeIn 0.5s ease;
+}
+
+.trial-lock-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.trial-lock-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: var(--light);
+}
+
+.trial-lock-text {
+    color: var(--gray);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.trial-divider {
+    color: var(--glass-border);
+    margin: 20px 0;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+/* Countdown Timer */
+.trial-countdown {
+    font-size: 32px;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    padding: 15px;
+    border-radius: 16px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    margin-bottom: 20px;
+    direction: ltr;
+}
+
+.trial-countdown.green { color: var(--success); }
+.trial-countdown.yellow { color: var(--warning); }
+.trial-countdown.red { 
+    color: var(--danger); 
+    animation: pulse 1s infinite;
+}
+
+/* Activation Code Inputs */
+.activation-code-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+    direction: ltr;
+}
+
+.code-digit {
+    width: 50px;
+    height: 60px;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--light);
+    font-family: 'Cairo', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    transition: all 0.3s ease;
+    caret-color: var(--primary);
+}
+
+.code-digit:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    background: rgba(255,255,255,0.08);
+    transform: scale(1.05);
+}
+
+.code-digit.filled {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+/* WhatsApp Button */
+.btn-whatsapp {
+    background: linear-gradient(135deg, #25d366, #128c7e) !important;
+    color: white !important;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+    width: 100%;
+    justify-content: center;
+    font-size: 16px;
+    padding: 14px 24px;
+}
+
+.btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(37, 211, 102, 0.4);
+}
+
+/* Activation Error */
+.activation-error {
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 10px;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* ===== ADMIN CODE SECTION IN SETTINGS ===== */
+.admin-code-section {
+    border: 2px solid var(--warning);
+    border-radius: 16px;
+    padding: 20px;
+    background: rgba(245,158,11,0.05);
+}
+
+.admin-code-input {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--light);
+    font-family: 'Cairo', sans-serif;
+    font-size: 18px;
+    letter-spacing: 8px;
+    text-align: center;
+    font-weight: 700;
+    flex: 1;
+}
+
+.admin-code-input:focus {
+    outline: none;
+    border-color: var(--warning);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+/* ===== ADMIN PANEL ===== */
+.admin-section {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--light);
+}
+
+.admin-danger {
+    border-color: var(--danger);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.generated-code-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(236,72,153,0.1));
+    border: 2px dashed var(--primary);
+    border-radius: 16px;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+}
+
+.generated-code-label {
+    font-size: 14px;
+    color: var(--gray);
+    margin-bottom: 10px;
+}
+
+.generated-code-value {
+    font-size: 36px;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    color: var(--primary);
+    letter-spacing: 8px;
+    margin-bottom: 15px;
+    direction: ltr;
+}
+
+.admin-devices-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.admin-device-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.admin-device-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(99,102,241,0.3);
+}
+
+.admin-device-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass);
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.admin-device-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-device-name {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-device-date {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 4px;
+}
+
+.device-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.device-badge.admin {
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2));
+    color: var(--primary);
+    border: 1px solid rgba(99,102,241,0.3);
+}
+
+.device-badge.activated {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+    border: 1px solid rgba(16,185,129,0.3);
+}
+
+.device-badge.trial {
+    background: rgba(245,158,11,0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245,158,11,0.3);
+}
+
+.device-delete-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: var(--danger);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.device-delete-btn:hover {
+    background: var(--danger);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* ===== LOCKED CONTENT OVERLAY ===== */
+.locked-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 9998;
+    display: none;
+}
+
+/* Responsive for lock screen */
+@media (max-width: 480px) {
+    .trial-lock-content {
+        padding: 25px 15px;
+    }
+
+    .trial-lock-title {
+        font-size: 20px;
+    }
+
+    .trial-countdown {
+        font-size: 24px;
+        padding: 10px;
+    }
+
+    .code-digit {
+        width: 40px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .generated-code-value {
+        font-size: 28px;
+    }
+}
+
+
+/* ===== TRIAL WIDGET (Dashboard) ===== */
+.trial-widget {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.5s ease;
+    transition: all 0.3s ease;
+}
+
+.trial-widget:hover {
+    border-color: rgba(99,102,241,0.3);
+    transform: translateY(-2px);
+}
+
+.trial-widget-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.trial-widget-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.trial-widget-label {
+    font-size: 12px;
+    color: var(--gray);
+    font-weight: 600;
+}
+
+.trial-widget-timer {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    color: var(--light);
+    direction: ltr;
+    letter-spacing: 2px;
+}
+
+.trial-widget-status {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(245,158,11,0.15);
+    color: var(--warning);
+    flex-shrink: 0;
+}
+
+.trial-widget-status.activated {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+}
+
+.trial-widget-status.admin {
+    background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(236,72,153,0.3));
+    color: var(--primary);
+    border: 1px solid rgba(99,102,241,0.3);
+}
+
+/* Activated state - hidden by default, but if shown */
+.trial-widget-status.activated {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+}
+
+/* Widget color states */
+.trial-widget.green .trial-widget-timer { color: var(--success); }
+.trial-widget.yellow .trial-widget-timer { color: var(--warning); }
+.trial-widget.red .trial-widget-timer { color: var(--danger); animation: pulse 1s infinite; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .trial-widget {
+        padding: 12px 15px;
+        gap: 12px;
+    }
+    .trial-widget-icon {
+        font-size: 24px;
+    }
+    .trial-widget-timer {
+        font-size: 18px;
+    }
+    .trial-widget-label {
+        font-size: 11px;
     }
 }
