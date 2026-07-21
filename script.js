@@ -28,7 +28,6 @@ let selectedEndDate = null;
 let calendarOpen = { start: false, end: false };
 
 // ===================== PUSH NOTIFICATION CONFIG =====================
-let swRegistration = null;
 let pushEnabled = localStorage.getItem('sub_push_enabled') === 'true';
 
 // ===================== INIT =====================
@@ -38,15 +37,15 @@ document.addEventListener('DOMContentLoaded', function() {
     renderAll();
     initCalendars();
     initExpenseCalendar();
-    initPushNotifications();  // <-- ضيف السطر ده
+    initPushNotifications();
     
     setTimeout(() => checkExpiringSubscriptions(), 2000);
     setInterval(() => checkExpiringSubscriptions(), 60000);
     
-    scheduleDailyCheck();  // <-- ضيف السطر ده
+    scheduleDailyCheck();
     
     updateSoundIcon();
-    updatePushIcon();  // <-- ضيف السطر ده
+    updatePushIcon();
 });
 
 function checkServicesEmpty() {
@@ -61,22 +60,11 @@ function checkServicesEmpty() {
 }
 // ===================== PUSH NOTIFICATIONS =====================
 function initPushNotifications() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!('Notification' in window)) {
         console.log('⚠️ المتصفح لا يدعم الإشعارات');
         return;
     }
-
-    navigator.serviceWorker.ready.then((registration) => {
-        swRegistration = registration;
-        console.log('✅ Service Worker جاهز');
-        autoEnablePush();
-    });
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'NAVIGATE') {
-            showSection('expiring');
-        }
-    });
+    autoEnablePush();
 }
 
 // دالة جديدة: تفعيل تلقائي للإشعارات
@@ -204,30 +192,17 @@ function sendLocalNotification(title, body, options = {}) {
 
     const defaultOptions = {
         body: body,
-        // ❌ شيلت الأيقونات
-        // icon: '/icon-192x192.png',
-        // badge: '/badge-72x72.png',
         tag: 'subscription-alert',
         requireInteraction: true,
         dir: 'rtl',
         lang: 'ar',
         vibrate: [200, 100, 200],
-        actions: [
-            { action: 'open-expiring', title: 'عرض الاشتراكات' },
-            { action: 'dismiss', title: 'لاحقاً' }
-        ],
-        data: { url: '/#expiring' },
         ...options
     };
 
     try {
-        if (swRegistration) {
-            swRegistration.showNotification(title, defaultOptions);
-            console.log('✅ إشعار اتبعت عبر Service Worker');
-        } else {
-            new Notification(title, defaultOptions);
-            console.log('✅ إشعار اتبعت عبر Notification API');
-        }
+        new Notification(title, defaultOptions);
+        console.log('✅ إشعار اتبعت');
     } catch (err) {
         console.error('❌ فشل إرسال الإشعار:', err);
     }
@@ -1171,12 +1146,8 @@ function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
     if (modal) modal.classList.add('show');
     
-    // تحقق من كل عنصر قبل ما تستخدمه
     const nameInput = document.getElementById('merchantName');
     if (nameInput) nameInput.value = settings.merchantName || '';
-    
-    const emailInput = document.getElementById('merchantEmail');
-    if (emailInput) emailInput.value = settings.merchantEmail || '';
     
     const autoNotifyInput = document.getElementById('autoNotify');
     if (autoNotifyInput) autoNotifyInput.checked = settings.autoNotify !== false;
