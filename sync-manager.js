@@ -112,10 +112,22 @@ async function uploadToCloud() {
         t: Date.now()
     };
     
+    console.log('☁️ رفع البيانات:', code, 'العملاء:', data.c.length, 'الخدمات:', data.s.length);
+    
     try {
+        // ✅ خزن البيانات
         localStorage.setItem('sync_' + code, JSON.stringify(data));
-        console.log('☁️ تم الرفع:', code, 'البيانات:', data);
+        
+        // ✅ تأكد إنها اتخزنت
+        const check = localStorage.getItem('sync_' + code);
+        if (!check) {
+            console.error('❌ فشل التخزين!');
+            return false;
+        }
+        
+        console.log('✅ تم التخزين:', 'sync_' + code, 'الحجم:', check.length);
         return true;
+        
     } catch (err) {
         console.error('❌ فشل الرفع:', err);
         return false;
@@ -198,6 +210,7 @@ async function downloadFromCloud(importCode) {
 
 function exportData() {
     const code = getDeviceCode();
+    console.log('📤 تصدير - كود الجهاز:', code, 'الطول:', code.length);
     
     uploadToCloud().then(success => {
         if (!success) {
@@ -206,6 +219,10 @@ function exportData() {
         }
         
         document.getElementById('exportCode').value = code;
+        
+        // ✅ تأكد إن البيانات اتخزنت
+        const check = localStorage.getItem('sync_' + code);
+        console.log('✅ التحقق من التخزين:', 'sync_' + code, 'موجود:', !!check);
         
         navigator.clipboard.writeText(code).then(() => {
             showNotification('✅ تم النسخ: ' + code, 'success');
@@ -252,13 +269,20 @@ function importData(manualCode) {
 // ===================== MISC =====================
 
 function openSyncModal() {
+    const code = getDeviceCode();
+    console.log('🔄 فتح مودال - الكود:', code, 'الطول:', code.length);
+    
     document.getElementById('syncModal').classList.add('show');
-    document.getElementById('currentDeviceCode').textContent = getDeviceCode();
+    document.getElementById('currentDeviceCode').textContent = code;
     document.getElementById('exportCode').value = '';
     document.getElementById('importCode').value = '';
     document.getElementById('qrCodeDisplay').innerHTML = '';
     document.getElementById('qrScanResult').innerHTML = '';
     document.getElementById('qrFileInput').value = '';
+    
+    // ✅ شيك لو فيه بيانات مخزنة للكود ده
+    const myData = localStorage.getItem('sync_' + code);
+    console.log('📊 بياناتي:', 'sync_' + code, 'موجود:', !!myData);
 }
 
 function closeSyncModal() {
