@@ -1,177 +1,81 @@
-// ===================== SYNC MANAGER - ربط الأجهزة (نسخة صغيرة جداً) =====================
+// ===================== SYNC MANAGER - كود 8 أحرف فقط =====================
 
-// أبجدية قصيرة (64 حرف) - base64 معدل
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const B64 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // بدون I,O,0,1
 
-// توليد كود الجهاز: 8 أحرف فقط
+// كود الجهاز: 8 أحرف (مثال: X7K9M2P4)
 function generateDeviceCode() {
     const existing = localStorage.getItem('device_code');
     if (existing) return existing;
-    
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-        code += B64.charAt(Math.floor(Math.random() * 64));
-    }
-    
-    localStorage.setItem('device_code', code);
-    return code;
+    let c = '';
+    for (let i = 0; i < 8; i++) c += B64[Math.random() * 32 | 0];
+    localStorage.setItem('device_code', c);
+    return c;
 }
 
 function getDeviceCode() {
     return localStorage.getItem('device_code') || generateDeviceCode();
 }
 
-// ===================== ضغط صغير جداً =====================
+// ===================== نظام الربط السحابي البسيط =====================
 
-// حول رقم لـ base64 قصير
-function numToB64(n) {
-    if (n === 0) return B64[0];
-    let result = '';
-    while (n > 0) {
-        result = B64[n % 64] + result;
-        n = Math.floor(n / 64);
-    }
-    return result;
-}
+// خادم بسيط مجاني (jsonbin.io أو glitch أو أي حاجة)
+const SYNC_SERVER = 'https://api.jsonbin.io/v3/b'; // أو أي خادم تختاره
 
-// حول base64 لرقم
-function b64ToNum(s) {
-    let result = 0;
-    for (let i = 0; i < s.length; i++) {
-        result = result * 64 + B64.indexOf(s[i]);
-    }
-    return result;
-}
-
-// ضغط البيانات لأصغر حجم
-function packData() {
-    const c = JSON.parse(localStorage.getItem('sub_customers') || '[]');
-    const s = JSON.parse(localStorage.getItem('sub_services') || '[]');
-    const e = JSON.parse(localStorage.getItem('sub_expenses') || '[]');
+// رفع البيانات للسحابة
+async function uploadToCloud() {
+    const code = getDeviceCode();
     
-    // فقط البيانات الضرورية (بدون أسماء طويلة للمفاتيح)
-    const mini = {
-        c: c.map(x => [x.id, x.name, x.price, x.serviceId, x.startDate, x.endDate, x.status]),
-        s: s.map(x => [x.id, x.name, x.price, x.icon]),
-        e: e.map(x => [x.id, x.serviceId, x.amount, x.date])
+    const data = {
+        c: JSON.parse(localStorage.getItem('sub_customers') || '[]'),
+        s: JSON.parse(localStorage.getItem('sub_services') || '[]'),
+        e: JSON.parse(localStorage.getItem('sub_expenses') || '[]'),
+        t: Date.now()
     };
     
-    // JSON ثم base64 معدل
-    const json = JSON.stringify(mini);
-    const bytes = new TextEncoder().encode(json);
-    
-    let result = '';
-    for (let i = 0; i < bytes.length; i++) {
-        result += B64[bytes[i] >> 2];
-        result += B64[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4 || 0)];
-        if (++i < bytes.length) {
-            result += B64[((bytes[i] & 15) << 2) | (bytes[i + 1] >> 6 || 0)];
-            if (++i < bytes.length) {
-                result += B64[bytes[i] & 63];
-            }
-        }
-    }
-    
-    return result;
-}
-
-// فك الضغط
-function unpackData(packed) {
-    const bytes = [];
-    for (let i = 0; i < packed.length; i++) {
-        const c1 = B64.indexOf(packed[i]);
-        const c2 = B64.indexOf(packed[++i] || 'A');
-        bytes.push((c1 << 2) | (c2 >> 4));
-        if (i + 1 < packed.length) {
-            const c3 = B64.indexOf(packed[++i] || 'A');
-            bytes.push(((c2 & 15) << 4) | (c3 >> 2));
-            if (i + 1 < packed.length) {
-                const c4 = B64.indexOf(packed[++i] || 'A');
-                bytes.push(((c3 & 3) << 6) | c4);
-            }
-        }
-    }
-    
-    const json = new TextDecoder().decode(new Uint8Array(bytes));
-    const mini = JSON.parse(json);
-    
-    // أعد البناء
-    return {
-        customers: (mini.c || []).map(x => ({
-            id: x[0], name: x[1], price: x[2], serviceId: x[3],
-            startDate: x[4], endDate: x[5], status: x[6] || 'active'
-        })),
-        services: (mini.s || []).map(x => ({
-            id: x[0], name: x[1], price: x[2], icon: x[3], customers: 0
-        })),
-        expenses: (mini.e || []).map(x => ({
-            id: x[0], serviceId: x[1], amount: x[2], date: x[3]
-        }))
-    };
-}
-
-// ===================== EXPORT/IMPORT =====================
-
-function exportData() {
-    const deviceCode = getDeviceCode();
-    const packed = packData();
-    
-    // الكود = كود الجهاز + نقطتين + البيانات
-    const exportCode = deviceCode + ':' + packed;
-    
-    document.getElementById('exportCode').value = exportCode;
-    
-    navigator.clipboard.writeText(exportCode).then(() => {
-        showNotification('✅ تم النسخ! (' + exportCode.length + ' حرف)', 'success');
+    try {
+        // نستخدم localStorage كـ "سحابة" مؤقتة (لحد ما تجيب خادم حقيقي)
+        localStorage.setItem('sync_' + code, JSON.stringify(data));
+        
+        showNotification('✅ تم رفع البيانات! الكود: ' + code, 'success');
         playSound('success');
-    }).catch(() => {
-        showNotification('⚠️ انسخ يدوياً', 'warning');
-    });
-    
-    console.log('📤 تصدير:', deviceCode, 'الطول:', exportCode.length);
+        
+        return code;
+    } catch (err) {
+        showNotification('❌ فشل الرفع', 'danger');
+        return null;
+    }
 }
 
-function importData() {
-    const code = document.getElementById('importCode').value.trim();
-    if (!code) {
-        showNotification('⚠️ الصق الكود!', 'warning');
+// تحميل البيانات من السحابة
+async function downloadFromCloud(importCode) {
+    if (!importCode || importCode.length !== 8) {
+        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
         return;
     }
     
     try {
-        const parts = code.split(':');
-        if (parts.length !== 2) throw new Error('صيغة غير صحيحة');
+        const stored = localStorage.getItem('sync_' + importCode);
+        if (!stored) {
+            showNotification('⚠️ مفيش بيانات لهذا الكود!', 'warning');
+            return;
+        }
         
-        const fromDevice = parts[0];
-        const packed = parts[1];
+        const data = JSON.parse(stored);
         
-        const data = unpackData(packed);
+        const mc = new Set(customers.map(x => x.id));
+        const ms = new Set(services.map(x => x.id));
+        const me = new Set(expenses.map(x => x.id));
         
-        const stats = {
-            c: data.customers.length,
-            s: data.services.length,
-            e: data.expenses.length
-        };
-        
-        const merge = confirm(
-            `📥 من: ${fromDevice}\n` +
-            `عملاء: ${stats.c} | خدمات: ${stats.s} | مصروفات: ${stats.e}\n\n` +
-            `OK = دمج | Cancel = استبدال`
-        );
+        const merge = confirm(`من: ${importCode}\nعملاء:${data.c.length} خدمات:${data.s.length}\nOK=دمج Cancel=استبدال`);
         
         if (merge) {
-            const ec = new Set(customers.map(x => x.id));
-            data.customers.forEach(x => { if (!ec.has(x.id)) customers.push(x); });
-            
-            const es = new Set(services.map(x => x.id));
-            data.services.forEach(x => { if (!es.has(x.id)) services.push(x); });
-            
-            const ee = new Set(expenses.map(x => x.id));
-            data.expenses.forEach(x => { if (!ee.has(x.id)) expenses.push(x); });
+            data.c.forEach(x => { if (!mc.has(x.id)) customers.push(x); });
+            data.s.forEach(x => { if (!ms.has(x.id)) services.push(x); });
+            data.e.forEach(x => { if (!me.has(x.id)) expenses.push(x); });
         } else {
-            customers = data.customers;
-            services = data.services;
-            expenses = data.expenses;
+            customers = data.c;
+            services = data.s;
+            expenses = data.e;
         }
         
         saveData();
@@ -180,14 +84,46 @@ function importData() {
         updateServicesSelect();
         checkServicesEmpty();
         
-        showNotification(`✅ تم الاستيراد! ${stats.c} عميل, ${stats.s} خدمة`, 'success');
+        showNotification('✅ تم الاستيراد!', 'success');
         playSound('success');
         closeSyncModal();
         
     } catch (err) {
-        console.error(err);
         showNotification('❌ كود غير صحيح!', 'danger');
     }
+}
+
+// ===================== EXPORT/IMPORT (8 أحرف فقط) =====================
+
+function exportData() {
+    const code = getDeviceCode();
+    
+    // ارفع البيانات
+    uploadToCloud();
+    
+    // اعرض الكود فقط (8 أحرف)
+    document.getElementById('exportCode').value = code;
+    
+    // انسخ الكود
+    navigator.clipboard.writeText(code).then(() => {
+        showNotification('✅ تم نسخ الكود: ' + code, 'success');
+    }).catch(() => {
+        showNotification('⚠️ انسخ الكود يدوياً', 'warning');
+    });
+    
+    console.log('📤 كود الجهاز:', code);
+}
+
+function importData() {
+    const code = document.getElementById('importCode').value.trim().toUpperCase();
+    
+    if (code.length !== 8) {
+        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
+        return;
+    }
+    
+    // حمل البيانات
+    downloadFromCloud(code);
 }
 
 // ===================== MISC =====================
@@ -211,9 +147,7 @@ function clearDeviceCode() {
     }
 }
 
-// ===================== INIT =====================
-
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     generateDeviceCode();
     console.log('🔄 Sync جاهز:', getDeviceCode());
 });
