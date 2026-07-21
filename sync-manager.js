@@ -2,7 +2,7 @@
 
 const B64 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-// كود الجهاز: 8 أحرف
+// كود الجهاز: 8 أحرف (مثال: SM-34U9PV)
 function generateDeviceCode() {
     const existing = localStorage.getItem('device_code');
     if (existing) return existing;
@@ -59,8 +59,6 @@ function scanQRCode(input) {
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            // استخدم jsQR مكتبة للقراءة
-            // لو مش موجودة، نستخدم طريقة بديلة
             readQRWithJsQR(img, resultDiv);
         };
         img.src = e.target.result;
@@ -70,9 +68,7 @@ function scanQRCode(input) {
 
 // قراءة QR باستخدام jsQR
 function readQRWithJsQR(img, resultDiv) {
-    // نحتاج مكتبة jsQR
     if (typeof jsQR === 'undefined') {
-        // حمل المكتبة ديناميكياً
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
         script.onload = () => processQRImage(img, resultDiv);
@@ -126,16 +122,9 @@ async function uploadToCloud() {
 }
 
 async function downloadFromCloud(importCode) {
-    if (!importCode) {
-        showNotification('⚠️ أدخل الكود الأول!', 'warning');
-        return false;
-    }
-    
-    // ✅ SM-34U9PV = 8 أحرف، SM-ONGZUF = 8 أحرف
-    // لو الكود فيه SM- = 8، لو مفيش = 6
-    const cleanCode = importCode.replace('SM-', '');
-    if (cleanCode.length !== 6) {
-        showNotification('⚠️ كود غير صحيح!', 'warning');
+    // ✅ التحقق من الكود: لازم يكون 8 أحرف (مثال: SM-34U9PV)
+    if (!importCode || importCode.length !== 8) {
+        showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
         return false;
     }
     
@@ -209,6 +198,7 @@ function exportData() {
 function importData(manualCode) {
     const code = manualCode || document.getElementById('importCode').value.trim().toUpperCase();
     
+    // ✅ التحقق من الكود: لازم يكون 8 أحرف
     if (!code || code.length !== 8) {
         showNotification('⚠️ الكود لازم يكون 8 أحرف!', 'warning');
         return;
