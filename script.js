@@ -3066,3 +3066,597 @@ function renderFinance() {
         </div>
     `;
 }
+
+
+// ===================== NEW DATA STRUCTURES =====================
+window.suppliers = [];
+window.activityLog = [];
+window.subscriptionHistory = [];
+
+const DATA_KEYS = {
+    customers: 'sub_customers',
+    services: 'sub_services',
+    expenses: 'sub_expenses',
+    suppliers: 'sub_suppliers',
+    activityLog: 'sub_activity_log',
+    subscriptionHistory: 'sub_subscription_history'
+};
+
+let saveTimeout = null;
+let renderTimeout = null;
+const statusCache = new Map();
+
+function loadData() {
+    try {
+        const startTime = performance.now();
+        const data = {};
+        for (const [key, storageKey] of Object.entries(DATA_KEYS)) {
+            try {
+                const raw = localStorage.getItem(storageKey);
+                data[key] = raw ? JSON.parse(raw) : [];
+            } catch (e) { data[key] = []; }
+        }
+        window.customers = data.customers || [];
+        window.services = data.services || [];
+        window.expenses = data.expenses || [];
+        window.suppliers = data.suppliers || [];
+        window.activityLog = data.activityLog || [];
+        window.subscriptionHistory = data.subscriptionHistory || [];
+        migrateOldData();
+        console.log(`Data loaded in ${(performance.now() - startTime).toFixed(1)}ms`);
+    } catch (err) {
+        window.customers = []; window.services = []; window.expenses = [];
+        window.suppliers = []; window.activityLog = []; window.subscriptionHistory = [];
+    }
+}
+
+function migrateOldData() {
+    let migrated = false;
+    customers.forEach(c => {
+        if (!c.supplierId) { c.supplierId = null; migrated = true; }
+        if (!c.costPrice && c.price) { c.costPrice = c.price * 0.7; c.sellPrice = c.price; migrated = true; }
+        if (!c.subscriptionHistory) {
+            c.subscriptionHistory = [{
+                serviceId: c.serviceId, serviceName: c.serviceName, serviceIcon: c.serviceIcon,
+                startDate: c.startDate, endDate: c.endDate, costPrice: c.costPrice || 0,
+                sellPrice: c.sellPrice || c.price || 0, supplierId: c.supplierId,
+                status: c.status, createdAt: c.addedAt || new Date().toISOString()
+            }];
+            migrated = true;
+        }
+    });
+    if (migrated) { console.log('Data migration done'); saveData(); }
+}
+
+function saveData() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            localStorage.setItem(DATA_KEYS.customers, JSON.stringify(customers));
+            localStorage.setItem(DATA_KEYS.services, JSON.stringify(services));
+            localStorage.setItem(DATA_KEYS.expenses, JSON.stringify(expenses));
+            localStorage.setItem(DATA_KEYS.suppliers, JSON.stringify(suppliers));
+            localStorage.setItem(DATA_KEYS.activityLog, JSON.stringify(activityLog));
+            localStorage.setItem(DATA_KEYS.subscriptionHistory, JSON.stringify(subscriptionHistory));
+        } catch (err) { showNotification('Error saving data', 'warning'); }
+    }, 100);
+}
+
+// ===================== ACTIVITY LOG =====================
+function logActivity(type, data) {
+    const entry = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
+        type, customerName: data.customerName||null, customerId: data.customerId||null,
+        serviceName: data.serviceName||null, supplierName: data.supplierName||null,
+        supplierId: data.supplierId||null, details: data.details||'',
+        timestamp: new Date().toISOString(), user: 'Admin'
+    };
+    activityLog.unshift(entry);
+    if (activityLog.length > 500) activityLog = activityLog.slice(0, 500);
+    saveData();
+}
+
+function clearActivityLog() {
+    if (!confirm('هل أنت متأكد من مسح سجل النشاط؟')) return;
+    activityLog = []; saveData(); renderActivityLog();
+    showNotification('تم مسح سجل النشاط', 'success');
+}
+
+function getActivityTypeLabel(t) {
+    return {customer_create:'إنشاء عميل',customer_edit:'تعديل عميل',customer_delete:'حذف عميل',
+        subscription_create:'إنشاء اشتراك',subscription_edit:'تعديل اشتراك',subscription_delete:'حذف اشتراك',
+        subscription_renew:'تجديد اشتراك',subscription_status_change:'تغيير حالة',
+        supplier_create:'إضافة مورد',supplier_edit:'تعديل مورد',supplier_delete:'حذف مورد',
+        settings:'تعديل إعدادات'}[t] || t;
+}
+
+function getActivityIcon(t) {
+    return {customer_create:'fa-user-plus',customer_edit:'fa-user-edit',customer_delete:'fa-user-times',
+        subscription_create:'fa-plus-circle',subscription_edit:'fa-edit',subscription_delete:'fa-trash-alt',
+        subscription_renew:'fa-sync-alt',subscription_status_change:'fa-exchange-alt',
+        supplier_create:'fa-truck',supplier_edit:'fa-edit',supplier_delete:'fa-trash-alt',
+        settings:'fa-cog'}[t] || 'fa-info-circle';
+}
+
+function formatRelativeTime(ds) {
+    const d = new Date(ds), now = new Date();
+    const diff = Math.floor((now-d)/1000);
+    if (diff < 60) return 'الآن';
+    if (diff < 3600) return `منذ ${Math.floor(diff/60)} دقيقة`;
+    if (diff < 86400) return `منذ ${Math.floor(diff/3600)} ساعة`;
+    if (diff < 604800) return `منذ ${Math.floor(diff/86400)} يوم`;
+    return formatDateArabic(d);
+}
+
+function renderActivityLog() {
+    const c = document.getElementById('activityLogContainer');
+    const s = document.getElementById('activitySearch')?.value?.toLowerCase()||'';
+    const tf = document.getElementById('activityTypeFilter')?.value||'all';
+    const df = document.getElementById('activityDateFilter')?.value||'';
+    let f = activityLog;
+    if (s) f = f.filter(a => (a.customerName&&a.customerName.toLowerCase().includes(s))||(a.serviceName&&a.serviceName.toLowerCase().includes(s))||(a.supplierName&&a.supplierName.toLowerCase().includes(s))||(a.details&&a.details.toLowerCase().includes(s)));
+    if (tf !== 'all') f = f.filter(a => a.type === tf);
+    if (df) { const fd = new Date(df).toDateString(); f = f.filter(a => new Date(a.timestamp).toDateString() === fd); }
+    if (f.length === 0) { c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">لا يوجد سجل</div><div class="empty-state-text">سيتم التسجيل تلقائياً</div></div>'; return; }
+    c.innerHTML = '<div class="activity-timeline">' + f.map(a => `
+        <div class="activity-item ${a.type}">
+            <div class="activity-content">
+                <div class="activity-icon"><i class="fas ${getActivityIcon(a.type)}"></i></div>
+                <div class="activity-text">
+                    <div class="activity-title">${getActivityTypeLabel(a.type)}</div>
+                    <div class="activity-meta">
+                        ${a.customerName?`<span class="activity-badge customer"><i class="fas fa-user"></i> ${a.customerName}</span>`:''}
+                        ${a.serviceName?`<span class="activity-badge subscription"><i class="fas fa-box"></i> ${a.serviceName}</span>`:''}
+                        ${a.supplierName?`<span class="activity-badge supplier"><i class="fas fa-truck"></i> ${a.supplierName}</span>`:''}
+                        <span><i class="far fa-clock"></i> ${formatRelativeTime(a.timestamp)}</span>
+                        <span><i class="fas fa-user"></i> ${a.user}</span>
+                    </div>
+                    ${a.details?`<div style="margin-top:8px;color:var(--gray);font-size:13px;">${a.details}</div>`:''}
+                </div>
+            </div>
+        </div>`).join('') + '</div>';
+}
+function filterActivityLog() { renderActivityLog(); }
+
+// ===================== SUPPLIERS =====================
+function openSupplierModal(sid) {
+    const m = document.getElementById('supplierModal');
+    const t = document.getElementById('supplierModalTitle');
+    const b = document.getElementById('supplierSubmitBtn');
+    const idIn = document.getElementById('supplierId');
+    if (sid) {
+        const s = suppliers.find(x => x.id === sid); if (!s) return;
+        t.textContent = 'تعديل مورد'; b.textContent = 'حفظ التعديلات';
+        idIn.value = s.id; document.getElementById('supplierName').value = s.name;
+        document.getElementById('supplierPhone').value = s.phone||'';
+        document.getElementById('supplierStatus').value = s.status||'active';
+        document.getElementById('supplierNotes').value = s.notes||'';
+    } else {
+        t.textContent = 'إضافة مورد جديد'; b.textContent = 'إضافة المورد';
+        idIn.value = ''; document.getElementById('supplierName').value = '';
+        document.getElementById('supplierPhone').value = '';
+        document.getElementById('supplierStatus').value = 'active';
+        document.getElementById('supplierNotes').value = '';
+    }
+    m.classList.add('show');
+}
+function closeSupplierModal() { document.getElementById('supplierModal').classList.remove('show'); }
+
+function saveSupplier(e) {
+    e.preventDefault();
+    const id = document.getElementById('supplierId').value;
+    const name = document.getElementById('supplierName').value.trim();
+    const phone = document.getElementById('supplierPhone').value.trim();
+    const status = document.getElementById('supplierStatus').value;
+    const notes = document.getElementById('supplierNotes').value.trim();
+    if (!name) { showNotification('أدخل اسم المورد', 'warning'); return; }
+    if (id) {
+        const s = suppliers.find(x => x.id == id);
+        if (s) { s.name=name; s.phone=phone; s.status=status; s.notes=notes; s.updatedAt=new Date().toISOString();
+            logActivity('supplier_edit',{supplierName:name,supplierId:s.id,details:`تعديل ${name}`});
+            showNotification('تم تعديل '+name, 'success');
+        }
+    } else {
+        const s = {id:Date.now(),name,phone,status,notes,createdAt:new Date().toISOString()};
+        suppliers.push(s);
+        logActivity('supplier_create',{supplierName:name,supplierId:s.id,details:`إضافة ${name}`});
+        showNotification('تم إضافة '+name, 'success'); playSound('success');
+    }
+    saveData(); renderSuppliers(); updateSuppliersSelect(); closeSupplierModal();
+}
+
+function deleteSupplier(id) {
+    const s = suppliers.find(x => x.id === id); if (!s) return;
+    if (!confirm(`حذف "${s.name}"؟`)) return;
+    const linked = customers.filter(c => c.supplierId == id);
+    if (linked.length > 0 && !confirm(`مرتبط بـ ${linked.length} اشتراك. إلغاء الربط؟`)) return;
+    customers.forEach(c => { if (c.supplierId == id) c.supplierId = null; });
+    suppliers = suppliers.filter(x => x.id !== id);
+    logActivity('supplier_delete',{supplierName:s.name,supplierId:id,details:`حذف ${s.name}`});
+    saveData(); renderSuppliers(); updateSuppliersSelect(); showNotification('تم الحذف', 'success');
+}
+
+function getSupplierStats(sid) {
+    const sc = customers.filter(c => c.supplierId == sid);
+    const sh = subscriptionHistory.filter(h => h.supplierId == sid);
+    const all = [...sc,...sh];
+    const orders = all.length;
+    const paid = all.reduce((sum,x) => sum+(parseFloat(x.costPrice)||0),0);
+    const profit = all.reduce((sum,x) => sum+((parseFloat(x.sellPrice)||0)-(parseFloat(x.costPrice)||0)),0);
+    const issues = sc.filter(c => c.notes && ['مشكلة','شكوى','تأخير','خطأ','عطل','مشكله','شكوي'].some(k => c.notes.includes(k))).length;
+    return {totalOrders:orders,totalPaid:paid,totalProfit:profit,avgDeliveryDays:0,issues};
+}
+
+function showSupplierDetails(sid) {
+    const s = suppliers.find(x => x.id === sid); if (!s) return;
+    const st = getSupplierStats(sid);
+    const sc = customers.filter(c => c.supplierId == sid);
+    const sh = subscriptionHistory.filter(h => h.supplierId == sid);
+    const all = [...sc,...sh].sort((a,b) => new Date(b.createdAt||b.addedAt)-new Date(a.createdAt||a.addedAt));
+    const m = document.getElementById('supplierDetailsModal');
+    const c = document.getElementById('supplierDetailsContent');
+    document.getElementById('supplierDetailsTitle').textContent = s.name;
+    c.innerHTML = `
+        <div class="supplier-details-stats">
+            <div class="supplier-detail-card"><div class="value orders">${st.totalOrders}</div><div class="label">الطلبات</div></div>
+            <div class="supplier-detail-card"><div class="value amount">${st.totalPaid.toLocaleString()} ج.م</div><div class="label">المدفوع</div></div>
+            <div class="supplier-detail-card"><div class="value profit">${st.totalProfit.toLocaleString()} ج.م</div><div class="label">الأرباح</div></div>
+            <div class="supplier-detail-card"><div class="value issues" style="color:${st.issues>0?'var(--danger)':'var(--success)'}">${st.issues}</div><div class="label">المشاكل</div></div>
+        </div>
+        <div style="margin-bottom:15px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><i class="fas fa-phone" style="color:var(--info)"></i><span>${s.phone||'لا يوجد'}</span></div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><i class="fas fa-circle" style="color:${s.status==='active'?'var(--success)':'var(--gray)'};font-size:10px"></i><span>${s.status==='active'?'نشط':'متوقف'}</span></div>
+            ${s.notes?`<div style="color:var(--gray);font-size:14px;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;"><i class="fas fa-sticky-note" style="margin-left:8px"></i>${s.notes}</div>`:''}
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;">
+            <button class="btn btn-primary" onclick="openSupplierModal(${s.id});closeSupplierDetailsModal();"><i class="fas fa-edit"></i> تعديل</button>
+            <button class="btn btn-danger" onclick="deleteSupplier(${s.id});closeSupplierDetailsModal();"><i class="fas fa-trash"></i> حذف</button>
+        </div>
+        <div class="card-title" style="margin-bottom:15px;"><i class="fas fa-history" style="color:var(--primary)"></i> آخر العمليات</div>
+        ${all.length===0?'<p style="color:var(--gray);text-align:center;padding:20px;">لا توجد عمليات</p>':`
+        <table class="supplier-orders-table"><thead><tr><th>العميل</th><th>الخدمة</th><th>شراء</th><th>بيع</th><th>ربح</th><th>التاريخ</th></tr></thead><tbody>
+        ${all.slice(0,20).map(o => {
+            const p = (parseFloat(o.sellPrice)||0)-(parseFloat(o.costPrice)||0);
+            return `<tr><td>${o.name||'غير معروف'}</td><td><span class="service-tag">${o.serviceIcon||'📦'} ${o.serviceName||'-'}</span></td>
+            <td>${(parseFloat(o.costPrice)||0).toLocaleString()} ج.م</td><td>${(parseFloat(o.sellPrice)||0).toLocaleString()} ج.م</td>
+            <td style="color:${p>=0?'var(--success)':'var(--danger)'}">${p.toLocaleString()} ج.م</td><td>${formatDateArabic(new Date(o.createdAt||o.addedAt))}</td></tr>`;
+        }).join('')}</tbody></table>`}`;
+    m.classList.add('show');
+}
+function closeSupplierDetailsModal() { document.getElementById('supplierDetailsModal').classList.remove('show'); }
+
+function renderSuppliers() {
+    const c = document.getElementById('suppliersTableContainer');
+    const s = document.getElementById('supplierSearch')?.value?.toLowerCase()||'';
+    const sf = document.getElementById('supplierStatusFilter')?.value||'all';
+    let f = suppliers;
+    if (s) f = f.filter(x => x.name.toLowerCase().includes(s) || (x.phone&&x.phone.includes(s)));
+    if (sf !== 'all') f = f.filter(x => x.status === sf);
+    if (f.length === 0) { c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚚</div><div class="empty-state-title">لا يوجد موردين</div><div class="empty-state-text">أضف موردك الأول</div><button class="btn btn-primary" onclick="openSupplierModal()"><i class="fas fa-plus"></i> إضافة</button></div>'; return; }
+    c.innerHTML = '<div class="suppliers-grid">' + f.map(s => {
+        const st = getSupplierStats(s.id);
+        return `<div class="supplier-card ${s.status}" onclick="showSupplierDetails(${s.id})">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div class="supplier-icon">🚚</div>
+                <div class="action-btns" onclick="event.stopPropagation()">
+                    <button class="action-btn edit" onclick="openSupplierModal(${s.id})" title="تعديل"><i class="fas fa-edit"></i></button>
+                    <button class="action-btn delete" onclick="deleteSupplier(${s.id})" title="حذف"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="supplier-name">${s.name}</div>
+            ${s.phone?`<div class="supplier-phone"><i class="fas fa-phone"></i> ${s.phone}</div>`:''}
+            <div class="supplier-status-badge ${s.status}"><i class="fas fa-circle" style="font-size:8px"></i> ${s.status==='active'?'نشط':'متوقف'}</div>
+            <div class="supplier-stats">
+                <div class="supplier-stat"><span class="supplier-stat-value">${st.totalOrders}</span><span class="supplier-stat-label">طلب</span></div>
+                <div class="supplier-stat"><span class="supplier-stat-value">${st.totalPaid.toLocaleString()}</span><span class="supplier-stat-label">مدفوع</span></div>
+                <div class="supplier-stat"><span class="supplier-stat-value" style="color:var(--success)">${st.totalProfit.toLocaleString()}</span><span class="supplier-stat-label">ربح</span></div>
+                <div class="supplier-stat"><span class="supplier-stat-value" style="color:${st.issues>0?'var(--danger)':'var(--gray)'}">${st.issues}</span><span class="supplier-stat-label">مشاكل</span></div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+    const b = document.getElementById('supplierCountBadge');
+    if (b) { b.textContent = suppliers.length; b.style.display = suppliers.length>0?'inline-block':'none'; }
+}
+function filterSuppliers() { renderSuppliers(); }
+
+function updateSuppliersSelect() {
+    const sel = document.getElementById('customerSupplier'); if (!sel) return;
+    const cv = sel.value;
+    sel.innerHTML = '<option value="">اختر المورد</option>';
+    suppliers.filter(s => s.status==='active').forEach(s => {
+        const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; sel.appendChild(o);
+    });
+    if (cv) sel.value = cv;
+    const msg = document.getElementById('noSuppliersMsg');
+    if (msg) msg.style.display = suppliers.length===0?'block':'none';
+}
+// ===================== CUSTOMER PROFILE =====================
+function getCustomerStatus(c) {
+    const all = getAllCustomerSubscriptions(c.id);
+    const spent = all.reduce((sum,s) => sum+(parseFloat(s.sellPrice)||0),0);
+    const renewals = all.filter(s => s.isRenewal).length;
+    if (spent > 5000 || all.length >= 5) return 'vip';
+    if (all.length <= 1 && !renewals) return 'new';
+    return 'regular';
+}
+function getCustomerStatusLabel(st) { return {vip:'VIP',regular:'عادي',new:'جديد'}[st]||st; }
+function getAllCustomerSubscriptions(cid) {
+    const cur = customers.filter(c => c.id === cid);
+    const hist = subscriptionHistory.filter(h => h.customerId === cid);
+    return [...cur,...hist];
+}
+
+function showCustomerProfile(cid) {
+    const c = customers.find(x => x.id === cid); if (!c) return;
+    const all = getAllCustomerSubscriptions(cid);
+    const st = getCustomerStatus(c);
+    const spent = all.reduce((sum,s) => sum+(parseFloat(s.sellPrice)||0),0);
+    const profit = all.reduce((sum,s) => sum+((parseFloat(s.sellPrice)||0)-(parseFloat(s.costPrice)||0)),0);
+    const renewals = all.filter(s => s.isRenewal).length;
+    const avgDur = all.length>0 ? all.reduce((sum,s) => {
+        const d = Math.round((new Date(s.endDate)-new Date(s.startDate))/(1000*60*60*24));
+        return sum+d;
+    },0)/all.length : 0;
+    const pc = {}; all.forEach(s => { pc[s.serviceName]=(pc[s.serviceName]||0)+1; });
+    const mp = Object.entries(pc).sort((a,b) => b[1]-a[1])[0];
+    const sorted = [...all].sort((a,b) => new Date(a.startDate)-new Date(b.startDate));
+    const fp = sorted[0], lp = sorted[sorted.length-1];
+    const acts = activityLog.filter(a => a.customerId===cid || a.customerName===c.name);
+    const m = document.getElementById('customerProfileModal');
+    const cont = document.getElementById('customerProfileContent');
+    document.getElementById('customerProfileTitle').textContent = 'ملف العميل: ' + c.name;
+    cont.innerHTML = `
+        <div class="customer-profile-header">
+            <div class="customer-profile-avatar ${st}">${c.name.charAt(0)}</div>
+            <div class="customer-profile-info">
+                <div class="customer-profile-name">${c.name}</div>
+                <div class="customer-profile-meta">
+                    <div class="customer-profile-phone"><i class="fas fa-phone"></i> ${getSourceIcon(c.source)} ${getSourceName(c.source)}</div>
+                    <div class="customer-status-badge ${st}"><i class="fas fa-crown" style="font-size:10px"></i> ${getCustomerStatusLabel(st)}</div>
+                </div>
+            </div>
+        </div>
+        <div class="customer-profile-stats">
+            <div class="customer-profile-stat"><div class="value subscriptions">${all.length}</div><div class="label">الاشتراكات</div></div>
+            <div class="customer-profile-stat"><div class="value renewals">${renewals}</div><div class="label">التجديدات</div></div>
+            <div class="customer-profile-stat"><div class="value" style="color:var(--primary)">${spent.toLocaleString()} ج.م</div><div class="label">المدفوع</div></div>
+            <div class="customer-profile-stat"><div class="value profit">${profit.toLocaleString()} ج.م</div><div class="label">الأرباح</div></div>
+            <div class="customer-profile-stat"><div class="value" style="color:var(--warning)">${Math.round(avgDur)} يوم</div><div class="label">متوسط المدة</div></div>
+            <div class="customer-profile-stat"><div class="value" style="color:var(--info)">${mp?mp[0]:'-'}</div><div class="label">أكثر منتج</div></div>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-title"><i class="fas fa-info-circle" style="color:var(--primary)"></i> معلومات عامة</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;">
+                <div><div style="font-size:12px;color:var(--gray);margin-bottom:4px;">أول عملية</div><div style="font-weight:700">${fp?formatDateArabic(new Date(fp.startDate)):'-'}</div></div>
+                <div><div style="font-size:12px;color:var(--gray);margin-bottom:4px;">آخر عملية</div><div style="font-weight:700">${lp?formatDateArabic(new Date(lp.startDate)):'-'}</div></div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-title"><i class="fas fa-list" style="color:var(--success)"></i> جميع الاشتراكات</div>
+            <div class="customer-subscriptions-timeline">
+                ${all.length===0?'<p style="color:var(--gray);text-align:center;">لا توجد</p>':all.sort((a,b)=>new Date(b.startDate)-new Date(a.startDate)).map(s => {
+                    const st2 = getStatus(s);
+                    const start = new Date(s.startDate), end = new Date(s.endDate);
+                    const dur = Math.round((end-start)/(1000*60*60*24));
+                    const p = (parseFloat(s.sellPrice)||0)-(parseFloat(s.costPrice)||0);
+                    const sup = suppliers.find(sp => sp.id==s.supplierId);
+                    return `<div class="subscription-timeline-item ${st2.status}">
+                        <div class="subscription-timeline-header">
+                            <div class="subscription-timeline-service"><span>${s.serviceIcon||'📦'}</span> ${s.serviceName||'-'} ${s.isRenewal?'<span style="color:var(--success);font-size:11px"><i class="fas fa-redo"></i> تجديد</span>':''}</div>
+                            <span class="status-badge ${st2.class}">${st2.text}</span>
+                        </div>
+                        <div class="subscription-timeline-dates">
+                            <div class="field"><span>البداية</span><strong>${formatDateArabic(start)}</strong></div>
+                            <div class="field"><span>الانتهاء</span><strong>${formatDateArabic(end)}</strong></div>
+                            <div class="field"><span>المدة</span><strong>${dur} يوم</strong></div>
+                            <div class="field"><span>الشراء</span><strong>${(parseFloat(s.costPrice)||0).toLocaleString()} ج.م</strong></div>
+                            <div class="field"><span>البيع</span><strong>${(parseFloat(s.sellPrice)||0).toLocaleString()} ج.م</strong></div>
+                            <div class="field"><span>الربح</span><strong style="color:${p>=0?'var(--success)':'var(--danger)'}">${p.toLocaleString()} ج.م</strong></div>
+                            <div class="field"><span>المورد</span><strong>${sup?sup.name:'غير محدد'}</strong></div>
+                            <div class="field"><span>الحالة</span><strong>${st2.text}</strong></div>
+                        </div>
+                        <div class="subscription-timeline-footer">
+                            <span style="color:var(--gray);font-size:13px">الربح: <span class="subscription-profit">${p.toLocaleString()} ج.م</span></span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-history" style="color:var(--secondary)"></i> سجل العمليات</div>
+            <div class="customer-activity-timeline">
+                ${acts.length===0?'<p style="color:var(--gray);text-align:center;">لا يوجد</p>':acts.slice(0,20).map(a => `
+                    <div class="customer-activity-item ${a.type.split('_')[1]||'create'}">
+                        <div style="font-weight:600">${getActivityTypeLabel(a.type)}</div>
+                        ${a.serviceName?`<div style="color:var(--gray);font-size:13px"><i class="fas fa-box" style="margin-left:5px"></i>${a.serviceName}</div>`:''}
+                        <div class="customer-activity-time"><i class="far fa-clock" style="margin-left:5px"></i>${formatRelativeTime(a.timestamp)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+    m.classList.add('show');
+}
+function closeCustomerProfileModal() { document.getElementById('customerProfileModal').classList.remove('show'); }
+
+// ===================== ENHANCED CUSTOMER FUNCTIONS =====================
+function addCustomer(e) {
+    e.preventDefault();
+    const name = document.getElementById('customerName').value.trim();
+    const source = document.getElementById('customerSource').value;
+    const serviceId = parseInt(document.getElementById('customerService').value);
+    const supplierId = document.getElementById('customerSupplier').value;
+    const costPrice = parseFloat(document.getElementById('customerCostPrice').value) || 0;
+    const sellPrice = parseFloat(document.getElementById('customerSellPrice').value) || 0;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const notes = document.getElementById('customerNotes').value.trim();
+    
+    if (services.length === 0) { showNotification('مفيش خدمات', 'warning'); return; }
+    if (!name || !source || !serviceId || !startDate || !endDate) { showNotification('املأ الحقول المطلوبة', 'warning'); return; }
+    
+    const service = services.find(s => s.id === serviceId);
+    const supplier = suppliers.find(s => s.id == supplierId);
+    const customer = {
+        id: Date.now(), name, source, serviceId, serviceName: service.name, serviceIcon: service.icon,
+        price: sellPrice, costPrice, sellPrice, supplierId: supplierId || null, supplierName: supplier ? supplier.name : null,
+        startDate, endDate, notes, status: 'active', addedAt: new Date().toISOString(),
+        subscriptionHistory: [{
+            serviceId, serviceName: service.name, serviceIcon: service.icon, startDate, endDate,
+            costPrice, sellPrice, supplierId: supplierId || null, status: 'active', isRenewal: false,
+            createdAt: new Date().toISOString()
+        }]
+    };
+    customers.push(customer); saveData();
+    logActivity('customer_create', {customerName:name, customerId:customer.id, serviceName:service.name, details:`إضافة ${name}`});
+    showNotification('تم إضافة ' + name, 'success'); playSound('success');
+    resetForm(); renderAll();
+}
+
+function renewCustomer(id) {
+    const c = customers.find(x => x.id === id); if (!c) return;
+    const start = new Date(); const end = new Date(); end.setMonth(end.getMonth()+1);
+    const oldSub = {
+        customerId: c.id, customerName: c.name, serviceId: c.serviceId, serviceName: c.serviceName,
+        serviceIcon: c.serviceIcon, startDate: c.startDate, endDate: c.endDate,
+        costPrice: c.costPrice || c.price * 0.7, sellPrice: c.sellPrice || c.price,
+        supplierId: c.supplierId, status: c.status, isRenewal: true, createdAt: new Date().toISOString()
+    };
+    subscriptionHistory.push(oldSub);
+    c.startDate = formatDate(start); c.endDate = formatDate(end); c.status = 'active';
+    c.renewedAt = new Date().toISOString(); c.renewCount = (c.renewCount || 0) + 1;
+    if (!c.subscriptionHistory) c.subscriptionHistory = [];
+    c.subscriptionHistory.push({
+        serviceId: c.serviceId, serviceName: c.serviceName, serviceIcon: c.serviceIcon,
+        startDate: c.startDate, endDate: c.endDate, costPrice: c.costPrice || 0, sellPrice: c.sellPrice || 0,
+        supplierId: c.supplierId, status: 'active', isRenewal: true, createdAt: new Date().toISOString()
+    });
+    saveData(); renderAll();
+    logActivity('subscription_renew', {customerName:c.name, customerId:c.id, serviceName:c.serviceName, details:`تجديد ${c.name}`});
+    showNotification('تم تجديد ' + c.name, 'success'); playSound('success');
+}
+
+function deleteCustomer(id) {
+    const c = customers.find(x => x.id === id); if (!c) return;
+    if (!confirm('حذف العميل؟')) return;
+    const deletedSub = {
+        customerId: c.id, customerName: c.name, serviceId: c.serviceId, serviceName: c.serviceName,
+        serviceIcon: c.serviceIcon, startDate: c.startDate, endDate: c.endDate,
+        costPrice: c.costPrice || 0, sellPrice: c.sellPrice || 0, supplierId: c.supplierId,
+        status: 'deleted', isRenewal: false, createdAt: new Date().toISOString()
+    };
+    subscriptionHistory.push(deletedSub);
+    customers = customers.filter(x => x.id !== id); saveData(); renderAll();
+    logActivity('customer_delete', {customerName:c.name, customerId:id, serviceName:c.serviceName, details:`حذف ${c.name}`});
+    showNotification('تم الحذف', 'success');
+}
+
+// ===================== SORTING: EXPIRY PRIORITY =====================
+function sortCustomersByPriority(list) {
+    return [...list].sort((a, b) => {
+        const sa = getStatus(a).status, sb = getStatus(b).status;
+        const p = {expiring:0, active:1, expired:2, completed:3};
+        const d = (p[sa] ?? 4) - (p[sb] ?? 4);
+        if (d !== 0) return d;
+        const ea = new Date(a.endDate), eb = new Date(b.endDate);
+        const t = new Date(); t.setHours(0,0,0,0); ea.setHours(0,0,0,0); eb.setHours(0,0,0,0);
+        return Math.round((ea-t)/(1000*60*60*24)) - Math.round((eb-t)/(1000*60*60*24));
+    });
+}
+
+// ===================== ENHANCED RENDERING =====================
+function renderDashboard() {
+    startTrialWidget();
+    document.getElementById('totalCustomers').textContent = customers.length;
+    document.getElementById('activeSubscriptions').textContent = customers.filter(c => getStatus(c).status === 'active').length;
+    document.getElementById('expiringSoon').textContent = customers.filter(c => getStatus(c).status === 'expiring').length;
+    const revenue = customers.reduce((sum,c) => sum+(parseFloat(c.sellPrice)||c.price||0),0);
+    document.getElementById('totalRevenue').textContent = revenue.toLocaleString() + ' ج.م';
+    document.getElementById('totalSuppliers').textContent = suppliers.length;
+    const totalCost = customers.reduce((sum,c) => sum+(parseFloat(c.costPrice)||0),0);
+    const totalExp = expenses.reduce((sum,e) => sum+(e.amount||0),0);
+    document.getElementById('totalProfit').textContent = (revenue-totalCost-totalExp).toLocaleString() + ' ج.م';
+    
+    const sorted = sortCustomersByPriority(customers).slice(0, 10);
+    const container = document.getElementById('recentCustomers');
+    if (sorted.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">لا يوجد عملاء</div><div class="empty-state-text">ابدأ بإضافة عميل</div><button class="btn btn-primary" onclick="showSection(\'add-customer\')"><i class="fas fa-plus"></i> إضافة</button></div>';
+        return;
+    }
+    container.innerHTML = buildCustomerTable(sorted, true) + buildCustomerCards(sorted, true);
+}
+
+function renderCustomers() {
+    const container = document.getElementById('customersTableContainer');
+    const search = document.getElementById('customerSearch')?.value?.toLowerCase()||'';
+    const statusFilter = document.getElementById('statusFilter')?.value||'all';
+    let filtered = customers;
+    if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || c.serviceName.toLowerCase().includes(search));
+    if (statusFilter !== 'all') filtered = filtered.filter(c => getStatus(c).status === statusFilter);
+    filtered = sortCustomersByPriority(filtered);
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">لا يوجد عملاء</div><div class="empty-state-text">أضف عميلك الأول</div></div>';
+        return;
+    }
+    container.innerHTML = buildCustomerTable(filtered, false) + buildCustomerCards(filtered, false);
+}
+
+function buildCustomerTable(list, isDashboard) {
+    return `<table class="data-table"><thead><tr><th>العميل</th><th>الخدمة</th>${!isDashboard?'<th>البداية</th>':''}<th>الانتهاء</th>${!isDashboard?'<th>المورد</th>':''}<th>الحالة</th><th>إجراءات</th></tr></thead><tbody>` +
+    list.map(c => {
+        const st = getStatus(c);
+        const end = new Date(c.endDate); end.setHours(0,0,0,0);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const daysLeft = Math.round((end-today)/(1000*60*60*24));
+        const isRenewed = c.renewedAt && c.addedAt && new Date(c.renewedAt) > new Date(c.addedAt);
+        const supplier = suppliers.find(s => s.id == c.supplierId);
+        return `<tr style="${st.status==='completed'||st.status==='expired'?'opacity:0.6;background:rgba(239,68,68,0.05);':''}">
+            <td><div class="customer-info" style="cursor:pointer" onclick="showCustomerProfile(${c.id})"><div class="customer-avatar" style="${isRenewed?'background:linear-gradient(135deg,var(--success),#059669);':''}">${isRenewed?'<i class="fas fa-sync-alt"></i>':c.name.charAt(0)}</div><div><div class="customer-name">${c.name} ${isRenewed?'<span style="color:var(--success);font-size:11px;margin-right:5px"><i class="fas fa-redo"></i></span>':''}</div><div class="customer-source">${getSourceIcon(c.source)} ${getSourceName(c.source)}</div></div></div></td>
+            <td><span class="service-tag">${c.serviceIcon} ${c.serviceName}</span></td>
+            ${!isDashboard?`<td>${formatDateArabic(new Date(c.startDate))}</td>`:''}
+            <td>${formatDateArabic(new Date(c.endDate))}${daysLeft>0&&st.status!=='completed'?'<br><span style="color:var(--gray);font-size:12px">('+daysLeft+' '+(daysLeft===1?'يوم':'أيام')+')</span>':''}${daysLeft===0&&st.status!=='completed'?'<br><span style="color:var(--warning);font-size:12px">(ينتهي اليوم)</span>':''}${daysLeft<0?'<br><span style="color:var(--danger);font-size:12px">(من '+Math.abs(daysLeft)+')</span>':''}</td>
+            ${!isDashboard?`<td>${supplier?supplier.name:'<span style="color:var(--gray)">-</span>'}</td>`:''}
+            <td><span class="status-badge ${st.class}">${st.text}</span></td>
+            <td><div class="action-btns"><button class="action-btn" onclick="showCustomerProfile(${c.id})" title="عرض" style="background:rgba(99,102,241,0.15);color:var(--primary)"><i class="fas fa-eye"></i></button>${st.status!=='completed'&&st.status!=='expired'?`<button class="action-btn renew" onclick="renewCustomer(${c.id})" title="تجديد"><i class="fas fa-sync-alt"></i></button>`:`<button class="action-btn renew" onclick="renewCustomer(${c.id})" title="تجديد" style="background:rgba(16,185,129,0.3)"><i class="fas fa-redo"></i></button>`}<button class="action-btn delete" onclick="deleteCustomer(${c.id})" title="حذف"><i class="fas fa-trash"></i></button></div></td>
+        </tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+function buildCustomerCards(list, isDashboard) {
+    return '<div class="customers-mobile-cards">' + list.map(c => {
+        const st = getStatus(c);
+        const end = new Date(c.endDate); end.setHours(0,0,0,0);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const daysLeft = Math.round((end-today)/(1000*60*60*24));
+        const isRenewed = c.renewedAt && c.addedAt && new Date(c.renewedAt) > new Date(c.addedAt);
+        const supplier = suppliers.find(s => s.id == c.supplierId);
+        let dc = 'active', dt = '';
+        if (daysLeft > 0) { dt = daysLeft + ' ' + (daysLeft===1?'يوم':'أيام'); }
+        else if (daysLeft === 0) { dt = 'ينتهي اليوم!'; dc = 'expiring'; }
+        else { dt = 'من ' + Math.abs(daysLeft) + ' ' + (Math.abs(daysLeft)===1?'يوم':'أيام'); dc = 'expired'; }
+        return `<div class="customer-mobile-card status-${st.status}" onclick="toggleCard(this,event)" data-customer-id="${c.id}">
+            <div class="customer-card-header" onclick="event.stopPropagation();showCustomerProfile(${c.id})">
+                <div class="customer-card-avatar ${isRenewed?'renewed':''}">${isRenewed?'<i class="fas fa-redo"></i>':c.name.charAt(0)}</div>
+                <div class="customer-card-info"><div class="customer-card-name">${c.name}${isRenewed?'<span class="renew-badge"><i class="fas fa-redo"></i></span>':''}</div><div class="customer-card-service"><span class="service-icon">${c.serviceIcon}</span>${c.serviceName}</div></div>
+                <div class="customer-card-meta"><div class="customer-card-price">${(c.sellPrice||c.price||0).toLocaleString()} ج.م</div><div class="customer-card-status-compact status-${st.status}"><i class="fas fa-circle" style="font-size:6px"></i> ${st.text.split(' ')[0]}</div></div>
+            </div>
+            <div class="customer-card-expand"><i class="fas fa-chevron-down"></i></div>
+            <div class="customer-card-body" onclick="event.stopPropagation()">
+                <div class="customer-card-field"><div class="customer-card-label">الحالة</div><div class="customer-card-value days-left ${dc}">${dt}</div></div>
+                <div class="customer-card-field"><div class="customer-card-label">المصدر</div><div class="customer-card-value"><span class="customer-card-source-icon">${getSourceIcon(c.source)}</span>${getSourceName(c.source)}</div></div>
+                <div class="customer-card-field"><div class="customer-card-label">المورد</div><div class="customer-card-value">${supplier?supplier.name:'-'}</div></div>
+                <div class="customer-card-field"><div class="customer-card-label">سعر البيع</div><div class="customer-card-value">${(c.sellPrice||c.price||0).toLocaleString()} ج.م</div></div>
+                <div class="customer-card-field"><div class="customer-card-label">البداية</div><div class="customer-card-value">${formatDateArabic(new Date(c.startDate))}</div></div>
+                <div class="customer-card-field"><div class="customer-card-label">الانتهاء</div><div class="customer-card-value">${formatDateArabic(new Date(c.endDate))}</div></div>
+                ${c.notes?`<div class="customer-card-field full-width"><div class="customer-card-label">ملاحظات</div><div class="customer-card-value" style="color:var(--gray);font-size:13px">${c.notes}</div></div>`:''}
+            </div>
+            <div class="customer-card-footer" onclick="event.stopPropagation()">
+                <span class="customer-card-status status-${st.status}"><i class="fas fa-circle" style="font-size:8px"></i> ${st.text}</span>
+                <div class="customer-card-actions">
+                    <button class="action-btn" onclick="showCustomerProfile(${c.id})" title="عرض" style="background:rgba(99,102,241,0.15);color:var(--primary)"><i class="fas fa-eye"></i></button>
+                    <button class="action-btn renew" onclick="renewCustomer(${c.id})" title="تجديد"><i class="fas fa-sync-alt"></i></button>
+                    <button class="action-btn delete" onclick="deleteCustomer(${c.id})" title="حذف"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}

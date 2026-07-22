@@ -6,7 +6,7 @@
     <title>نظام إدارة الاشتراكات - Stack Store CRM</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=3.0.0">
+    <link rel="stylesheet" href="style.css?v=4.0.0">
     <meta name="theme-color" content="#6366f1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,7 +16,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script>window.APP_VERSION = '3.0.0';</script>
+    <script>window.APP_VERSION = '4.0.0';</script>
 <base target="_blank">
 </head>
 <body>
@@ -197,6 +197,11 @@
             <i class="fas fa-box-open"></i>
             <span>الخدمات</span>
         </div>
+        <div class="nav-item" onclick="showSection('suppliers')">
+            <i class="fas fa-truck"></i>
+            <span>الموردين</span>
+            <span class="nav-badge" id="supplierCountBadge" style="display:none;">0</span>
+        </div>
         <div class="nav-item" onclick="showSection('add-customer')">
             <i class="fas fa-user-plus"></i>
             <span>إضافة عميل جديد</span>
@@ -209,6 +214,10 @@
         <div class="nav-item" onclick="showSection('finance')">
             <i class="fas fa-chart-line"></i>
             <span>الإحصائيات المالية</span>
+        </div>
+        <div class="nav-item" onclick="showSection('activity-log')">
+            <i class="fas fa-history"></i>
+            <span>سجل النشاط</span>
         </div>
         <div class="nav-item" onclick="openSettingsModal()">
             <i class="fas fa-cog"></i>
@@ -268,6 +277,20 @@
                     </div>
                     <div class="stat-value" id="totalRevenue">0 ج.م</div>
                     <div class="stat-label">إجمالي الإيرادات</div>
+                </div>
+                <div class="stat-card" style="--card-color: var(--info);">
+                    <div class="stat-icon" style="background: rgba(56,189,248,0.15); color: var(--info);">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div class="stat-value" id="totalSuppliers">0</div>
+                    <div class="stat-label">الموردين</div>
+                </div>
+                <div class="stat-card" style="--card-color: var(--danger);">
+                    <div class="stat-icon" style="background: rgba(239,68,68,0.15); color: var(--danger);">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-value" id="totalProfit">0 ج.م</div>
+                    <div class="stat-label">صافي الربح</div>
                 </div>
             </div>
 
@@ -344,6 +367,41 @@
             </div>
         </div>
 
+        <!-- Suppliers Section -->
+        <div class="section" id="suppliers-section">
+            <div class="header">
+                <h1 class="header-title">الموردين</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openSupplierModal()">
+                        <i class="fas fa-plus"></i>
+                        مورد جديد
+                    </button>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="supplierSearch" placeholder="ابحث عن مورد..." oninput="filterSuppliers()">
+                </div>
+                <select class="form-select" id="supplierStatusFilter" onchange="filterSuppliers()" style="width: 180px;">
+                    <option value="all">كل الحالات</option>
+                    <option value="active">نشط</option>
+                    <option value="inactive">متوقف</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <div id="suppliersTableContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🚚</div>
+                        <div class="empty-state-title">لا يوجد موردين</div>
+                        <div class="empty-state-text">أضف موردك الأول الآن</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Add Customer Section -->
         <div class="section" id="add-customer-section">
             <div class="header">
@@ -371,15 +429,27 @@
                         <div class="form-group">
                             <label class="form-label">الخدمة المشتراة *</label>
                             <select class="form-select" id="customerService" required onchange="updatePrice()">
-                                <!-- هيتملى تلقائي من JavaScript -->
                             </select>
                             <p id="noServicesMsg" style="color: var(--warning); font-size: 12px; margin-top: 5px; display: none;">
                                 ⚠️ مفيش خدمات - <a href="#" onclick="showSection('services'); return false;" style="color: var(--primary);">ضيف خدمة من هنا</a>
                             </p>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">السعر</label>
-                            <input type="text" class="form-input" id="customerPrice" placeholder="سيتم تحديده تلقائياً" readonly>
+                            <label class="form-label">المورد *</label>
+                            <select class="form-select" id="customerSupplier" required>
+                                <option value="">اختر المورد</option>
+                            </select>
+                            <p id="noSuppliersMsg" style="color: var(--warning); font-size: 12px; margin-top: 5px; display: none;">
+                                ⚠️ مفيش موردين - <a href="#" onclick="showSection('suppliers'); return false;" style="color: var(--primary);">ضيف مورد من هنا</a>
+                            </p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">سعر الشراء (من المورد) *</label>
+                            <input type="number" class="form-input" id="customerCostPrice" required placeholder="أدخل سعر الشراء">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">سعر البيع (للعميل) *</label>
+                            <input type="number" class="form-input" id="customerSellPrice" required placeholder="أدخل سعر البيع">
                         </div>
                         <div class="form-group">
                             <label class="form-label">تاريخ بداية الاشتراك *</label>
@@ -517,6 +587,51 @@
                 <div id="profitBreakdown"></div>
             </div>
         </div>
+
+        <!-- Activity Log Section -->
+        <div class="section" id="activity-log-section">
+            <div class="header">
+                <h1 class="header-title">سجل النشاط</h1>
+                <div class="header-actions">
+                    <button class="btn btn-danger" onclick="clearActivityLog()">
+                        <i class="fas fa-trash-alt"></i>
+                        مسح السجل
+                    </button>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="activitySearch" placeholder="ابحث في السجل..." oninput="filterActivityLog()">
+                </div>
+                <select class="form-select" id="activityTypeFilter" onchange="filterActivityLog()" style="width: 180px;">
+                    <option value="all">كل العمليات</option>
+                    <option value="customer_create">إنشاء عميل</option>
+                    <option value="customer_edit">تعديل عميل</option>
+                    <option value="customer_delete">حذف عميل</option>
+                    <option value="subscription_create">إنشاء اشتراك</option>
+                    <option value="subscription_edit">تعديل اشتراك</option>
+                    <option value="subscription_delete">حذف اشتراك</option>
+                    <option value="subscription_renew">تجديد اشتراك</option>
+                    <option value="supplier_create">إضافة مورد</option>
+                    <option value="supplier_edit">تعديل مورد</option>
+                    <option value="supplier_delete">حذف مورد</option>
+                    <option value="settings">تعديل إعدادات</option>
+                </select>
+                <input type="date" class="form-input" id="activityDateFilter" onchange="filterActivityLog()" style="width: 160px;">
+            </div>
+
+            <div class="card">
+                <div id="activityLogContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-title">لا يوجد سجل نشاط</div>
+                        <div class="empty-state-text">سيتم تسجيل جميع العمليات تلقائياً</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Service Modal -->
@@ -549,6 +664,64 @@
                     <button type="button" class="btn btn-outline" onclick="closeServiceModal()">إلغاء</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Supplier Modal -->
+    <div class="modal-overlay" id="supplierModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="supplierModalTitle">إضافة مورد جديد</h3>
+                <button class="modal-close" onclick="closeSupplierModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="saveSupplier(event)">
+                <input type="hidden" id="supplierId">
+                <div class="form-group">
+                    <label class="form-label">اسم المورد *</label>
+                    <input type="text" class="form-input" id="supplierName" required placeholder="أدخل اسم المورد">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">رقم الهاتف / وسيلة التواصل</label>
+                    <input type="text" class="form-input" id="supplierPhone" placeholder="مثال: 01012345678">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الحالة</label>
+                    <select class="form-select" id="supplierStatus">
+                        <option value="active">نشط</option>
+                        <option value="inactive">متوقف</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea class="form-input" id="supplierNotes" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 12px;">
+                    <button type="submit" class="btn btn-success" id="supplierSubmitBtn">إضافة المورد</button>
+                    <button type="button" class="btn btn-outline" onclick="closeSupplierModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supplier Details Modal -->
+    <div class="modal-overlay" id="supplierDetailsModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="supplierDetailsTitle">تفاصيل المورد</h3>
+                <button class="modal-close" onclick="closeSupplierDetailsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="supplierDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- Customer Profile Modal -->
+    <div class="modal-overlay" id="customerProfileModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="customerProfileTitle">ملف العميل</h3>
+                <button class="modal-close" onclick="closeCustomerProfileModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="customerProfileContent"></div>
         </div>
     </div>
 
@@ -716,7 +889,7 @@
         <i class="fas fa-bell-slash" id="pushIcon"></i>
     </button>
 
-    <script src="script.js?v=3.0.0"></script>
+    <script src="script.js?v=4.0.0"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -725,9 +898,11 @@
             if (typeof loadData === 'function') {
                 loadData();
                 console.log('📊 البيانات:', {
-                    customers: customers.length,
-                    services: services.length,
-                    expenses: expenses.length
+                    customers: window.customers?.length || 0,
+                    services: window.services?.length || 0,
+                    expenses: window.expenses?.length || 0,
+                    suppliers: window.suppliers?.length || 0,
+                    activityLog: window.activityLog?.length || 0
                 });
             }
 
@@ -738,10 +913,9 @@
 
             if (typeof renderServices === 'function') {
                 renderServices();
-                console.log('📦 الخدمات:', services.length);
+                console.log('📦 الخدمات:', window.services?.length || 0);
             }
 
-            // Initialize activation system
             if (typeof initActivationSystem === 'function') {
                 initActivationSystem();
             }
