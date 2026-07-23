@@ -959,21 +959,29 @@ openSettingsModal = function() {
 
 
 // ===================== DATA STORE =====================
-// ✅ دالة مساعدة لتحميل البيانات بأمان
 function loadData() {
     try {
         const c = localStorage.getItem('sub_customers');
         const s = localStorage.getItem('sub_services');
         const e = localStorage.getItem('sub_expenses');
+        const sup = localStorage.getItem('sub_suppliers');
+        const act = localStorage.getItem('sub_activity_log');
+        const subh = localStorage.getItem('sub_subscription_history');
         
         window.customers = c ? JSON.parse(c) : [];
         window.services = s ? JSON.parse(s) : [];
         window.expenses = e ? JSON.parse(e) : [];
+        window.suppliers = sup ? JSON.parse(sup) : [];
+        window.activityLog = act ? JSON.parse(act) : [];
+        window.subscriptionHistory = subh ? JSON.parse(subh) : [];
     } catch (err) {
         console.error('❌ خطأ في تحميل البيانات:', err);
         window.customers = [];
         window.services = [];
         window.expenses = [];
+        window.suppliers = [];
+        window.activityLog = [];
+        window.subscriptionHistory = [];
     }
 }
 
@@ -993,8 +1001,10 @@ let pushEnabled = localStorage.getItem('sub_push_enabled') === 'true';
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', function() {
     updateServicesSelect();
+    updateSuppliersSelect();        // 👈 أضف السطر ده
     checkServicesEmpty();
     renderAll();
+    renderSuppliers();              // 👈 أضف السطر ده
     initCalendars();
     initExpenseCalendar();
     initPushNotifications();
@@ -1391,6 +1401,8 @@ function addCustomer(e) {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     const notes = document.getElementById('customerNotes').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const deliveredEmail = document.getElementById('customerDeliveredEmail').value.trim();
     
     if (services.length === 0) {
         showNotification('⚠️ مفيش خدمات! ضيف خدمة الأول من قسم الخدمات', 'warning');
@@ -1414,6 +1426,8 @@ function addCustomer(e) {
         startDate,
         endDate,
         notes,
+        phone: phone || null,
+        deliveredEmail: deliveredEmail || null,
         status: 'active',
         addedAt: new Date().toISOString()
     };
@@ -1437,7 +1451,8 @@ function resetForm() {
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
     document.getElementById('customerPrice').value = '';
-    currentStartDate = new Date();
+    document.getElementById('customerPhone').value = '';
+    document.getElementById('customerDeliveredEmail').value = '';    currentStartDate = new Date();
     currentEndDate = new Date();
     renderCalendar('start', currentStartDate);
     renderCalendar('end', currentEndDate);
@@ -1634,11 +1649,13 @@ function renderAll() {
     renderDashboard();
     renderCustomers();
     renderServices();
+    renderSuppliers();          // 👈 أضف السطر ده
     renderExpiring();
-    renderFinance();      // ← أضف دي لو مش موجودة
+    renderFinance();
     updateBadges();
-    updateServicesSelect(); // ← حدث dropdown
-    checkServicesEmpty();   // ← شيك رسالة "مفيش خدمات"
+    updateServicesSelect();
+    updateSuppliersSelect();    // 👈 أضف السطر ده
+    checkServicesEmpty();
 }
 
 function renderDashboard() {
@@ -1684,6 +1701,7 @@ function renderDashboard() {
             <thead>
                 <tr>
                     <th>العميل</th>
+                    <th>بيانات التواصل</th>
                     <th>الخدمة</th>
                     <th>تاريخ الانتهاء</th>
                     <th>الحالة</th>
@@ -1899,11 +1917,13 @@ function renderCustomers() {
                                 <div>
                                     <div class="customer-name">${c.name}</div>
                                     <div class="customer-source">${getSourceIcon(c.source)} ${getSourceName(c.source)}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span class="service-tag">${c.serviceIcon} ${c.serviceName}</span></td>
-                        <td>${formatDateArabic(new Date(c.startDate))}</td>
+            </div></div></td>
+            <td>
+                ${c.phone ? `<div style="font-size:13px;"><i class="fas fa-phone" style="color:var(--success);margin-left:5px;"></i>${c.phone}</div>` : ''}
+                ${c.deliveredEmail ? `<div style="font-size:12px;color:var(--gray);margin-top:3px;"><i class="fas fa-envelope" style="color:var(--primary);margin-left:5px;"></i>${c.deliveredEmail}</div>` : ''}
+                ${!c.phone && !c.deliveredEmail ? '<span style="color:var(--gray);font-size:12px;">-</span>' : ''}
+            </td>
+            <td><span class="service-tag">${c.serviceIcon} ${c.serviceName}</span></td>${formatDateArabic(new Date(c.startDate))}</td>
                         <td>${formatDateArabic(new Date(c.endDate))} ${daysLeft > 0 ? '<span style="color: var(--gray); font-size: 12px;">(' + daysLeft + ' ' + (daysLeft === 1 ? 'يوم' : 'أيام') + ')</span>' : daysLeft === 0 ? '<span style="color: var(--warning); font-size: 12px;">(ينتهي اليوم)</span>' : '<span style="color: var(--danger); font-size: 12px;">(انتهى)</span>'}</td>
                         <td><span class="status-badge ${st.class}">${st.text}</span></td>
                         <td>
@@ -3412,7 +3432,9 @@ function showCustomerProfile(cid) {
                 <div class="customer-profile-name">${c.name}</div>
                 <div class="customer-profile-meta">
                     <div class="customer-profile-phone"><i class="fas fa-phone"></i> ${getSourceIcon(c.source)} ${getSourceName(c.source)}</div>
-                    <div class="customer-status-badge ${st}"><i class="fas fa-crown" style="font-size:10px"></i> ${getCustomerStatusLabel(st)}</div>
+                    ${c.phone ? `<div class="customer-profile-phone"><i class="fas fa-mobile-alt" style="color:var(--success)"></i> ${c.phone}</div>` : ''}
+                    ${c.deliveredEmail ? `<div class="customer-profile-phone" style="font-size:13px;direction:ltr;text-align:right;"><i class="fas fa-envelope" style="color:var(--primary)"></i> <strong>${c.deliveredEmail}</strong></div>` : ''}
+                    <div class="customer-status-badge${st}"><i class="fas fa-crown" style="font-size:10px"></i> ${getCustomerStatusLabel(st)}</div>
                 </div>
             </div>
         </div>
@@ -3519,7 +3541,7 @@ function renewCustomer(id) {
         customerId: c.id, customerName: c.name, serviceId: c.serviceId, serviceName: c.serviceName,
         serviceIcon: c.serviceIcon, startDate: c.startDate, endDate: c.endDate,
         costPrice: c.costPrice || c.price * 0.7, sellPrice: c.sellPrice || c.price,
-        supplierId: c.supplierId, status: c.status, isRenewal: true, createdAt: new Date().toISOString()
+        supplierId: c.supplierId, phone: c.phone, deliveredEmail: c.deliveredEmail, status: c.status, isRenewal: true, createdAt: new Date().toISOString()
     };
     subscriptionHistory.push(oldSub);
     c.startDate = formatDate(start); c.endDate = formatDate(end); c.status = 'active';
@@ -3643,6 +3665,8 @@ function buildCustomerCards(list, isDashboard) {
             <div class="customer-card-body" onclick="event.stopPropagation()">
                 <div class="customer-card-field"><div class="customer-card-label">الحالة</div><div class="customer-card-value days-left ${dc}">${dt}</div></div>
                 <div class="customer-card-field"><div class="customer-card-label">المصدر</div><div class="customer-card-value"><span class="customer-card-source-icon">${getSourceIcon(c.source)}</span>${getSourceName(c.source)}</div></div>
+                ${c.phone ? `<div class="customer-card-field"><div class="customer-card-label">رقم الهاتف</div><div class="customer-card-value"><i class="fas fa-phone" style="color:var(--success);margin-left:5px;"></i>${c.phone}</div></div>` : ''}
+                ${c.deliveredEmail ? `<div class="customer-card-field full-width"><div class="customer-card-label">الإيميل المسلّم</div><div class="customer-card-value" style="color:var(--primary);font-size:13px;direction:ltr;text-align:right;"><i class="fas fa-envelope" style="margin-left:5px;"></i>${c.deliveredEmail}</div></div>` : ''}
                 <div class="customer-card-field"><div class="customer-card-label">المورد</div><div class="customer-card-value">${supplier?supplier.name:'-'}</div></div>
                 <div class="customer-card-field"><div class="customer-card-label">سعر البيع</div><div class="customer-card-value">${(c.sellPrice||c.price||0).toLocaleString()} ج.م</div></div>
                 <div class="customer-card-field"><div class="customer-card-label">البداية</div><div class="customer-card-value">${formatDateArabic(new Date(c.startDate))}</div></div>
